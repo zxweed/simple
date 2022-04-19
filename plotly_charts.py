@@ -67,7 +67,7 @@ def updateLines(fig: go.FigureWidget, **line_data):
 def interactFigure(model: callable, lines: dict, height: int=700, rows: int=1, template='plotly_white') -> widgets:
     sp = getfullargspec(model)
     defaults = dict(zip_longest(reversed(sp.args), [] if sp.defaults is None else reversed(sp.defaults), fillvalue=1))
-    defaults = dict(reversed(defaults.items()))
+    # defaults = dict(reversed(defaults.items()))
     fig = chartFigure(height=height, rows=rows, template=template, lines=lines)
 
     def update(**param):
