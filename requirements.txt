@@ -4,4 +4,4 @@ numba
 plotly
 ipywidgets
 joblib
-TA-Lib
+pandas_ta
