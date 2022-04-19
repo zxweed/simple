@@ -3,3 +3,5 @@ pandas
 numba
 plotly
 ipywidgets
+joblib
+TA-Lib
