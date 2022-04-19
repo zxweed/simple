@@ -1,0 +1,114 @@
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
+from inspect import getfullargspec
+from itertools import repeat, zip_longest
+from ipywidgets import interact, widgets, interactive, HBox, VBox
+
+
+def addLines(fig: go.FigureWidget, **line_styles):
+    """Add line (or lines) to the figure"""
+    for line_name in line_styles:
+        line = line_styles[line_name]
+        line_class = go.scattergl.Marker if line.get('mode') == 'markers' else go.scattergl.Line
+
+        upkw = {}  # parameters not belong to the Line will be moved to upper-level
+        for param in line:
+            if param not in getfullargspec(line_class).args:
+                upkw[param] = line[param]
+        param_dict = {param: line[param] for param in line if param not in upkw}
+
+        if line_class == go.scattergl.Marker:
+            fig.add_scattergl(name=line_name, marker=param_dict, **upkw)
+        else:
+            fig.add_scattergl(name=line_name, line=param_dict, **upkw)
+
+
+def chartFigure(height=700, rows=1, template='plotly_white', lines=None, **layout_kwargs) -> go.FigureWidget:
+    """Create default chart widget with horizontal subplots"""
+
+    specs = [[{"secondary_y": True}] for _ in range(rows)]
+    if rows > 1:
+        k = (0.1 + 0.1*rows)
+        row_heights = [1 - k] + list(repeat(k/(rows-1), rows-1))
+    else:
+        row_heights = None
+
+    fig = go.FigureWidget(make_subplots(rows=rows, cols=1, row_heights=row_heights, vertical_spacing=0.03, shared_xaxes=True, specs=specs))
+
+    fig.update_layout(autosize=True, height=height, template=template,
+                      legend=dict(x=0.1, y=1, orientation="h"),
+                      margin=dict(l=45, r=15, b=10, t=30, pad=3),
+                      **layout_kwargs)
+
+    if lines is not None:
+        addLines(fig, **lines)
+        
+    fig.update_xaxes(spikemode='across+marker', spikedash='dot', spikethickness=2, spikesnap='cursor')
+    fig.update_traces(xaxis='x2')
+
+    return fig
+
+
+def updateLines(fig: go.FigureWidget, **line_data):
+    """Update lines xy-values"""
+
+    names = [s.name for s in fig.data]
+    with fig.batch_update():
+        for line_name in line_data:
+            k = names.index(line_name)
+            line = line_data[line_name]
+            if type(line) == dict:
+                fig.data[k].x = line['x']
+                fig.data[k].y = line['y']
+            else:
+                fig.data[k].y = line
+
+
+def interactFigure(model: callable, lines: dict, height: int=700, rows: int=1, template='plotly_white') -> widgets:
+    sp = getfullargspec(model)
+    defaults = dict(zip_longest(reversed(sp.args), [] if sp.defaults is None else reversed(sp.defaults), fillvalue=1))
+    defaults = dict(reversed(defaults.items()))
+    fig = chartFigure(height=height, rows=rows, template=template, lines=lines)
+
+    def update(**param):
+        updateLines(fig, **model(**param)[1])
+
+    sliders = interactive(update, **defaults).children[:-1]
+    param = {s.description: s.value for s in sliders}
+    update(**param)
+
+    return VBox([HBox(sliders), fig])
+
+
+def chartEquity(F):
+    """Interactive equity chart with threshold"""
+
+    fig = go.FigureWidget(make_subplots(rows=2, cols=1, vertical_spacing=0.03, row_heights=[0.8, 0.2], specs=[[{"secondary_y": True}], [{}]]))
+    fig.update_layout(margin=dict(l=40, r=20, t=35, b=15), height=600, template='none', legend_y=0.98, legend_x=0.4, legend_orientation="h", yaxis2_showgrid=False)
+
+    # equity lines
+    fig.add_scattergl(mode='lines', name='Price', line_color='rgb(242,242,242)', secondary_y=True, line_width=6)
+    fig.add_scattergl(mode='lines', name='Ideal midprice equity', line_color='gray', line_shape='hv')
+    fig.add_scattergl(mode='lines', name='Gross Equity', line_color='blue', line_shape='hv')
+    fig.add_scattergl(mode='lines', name='Equity w/ fee', line_color='red', line_shape='hv')
+
+    # profit histogram
+    fig.add_histogram(opacity=0.65, name='Trade Histogram', row=2, col=1)
+    fig.add_vline(0, line_dash='dot', row=2, col=1)
+
+    @interact(Threshold=(0, F.index.max(), 1))
+    def update(Threshold):
+        D = F.loc[Threshold].Deals
+        k = max(1, len(D)//1000)
+        with fig.batch_update():
+            fig.data[0].x = fig.data[1].x = fig.data[2].x = fig.data[3].x = D.x1[::k]
+
+            fig.data[0].y = D.Price0[::k]
+            fig.data[1].y = D.Ideal.cumsum()[::k]
+            fig.data[2].y = (D.Profit+D.Fee).cumsum()[::k]
+            fig.data[3].y = D.Profit.cumsum()[::k]
+            fig.data[4].x = D.Profit
+
+            fig.layout.title = f'Threshold={Threshold} Count={len(D)}'
+
+    return fig
