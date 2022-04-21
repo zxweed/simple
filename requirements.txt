@@ -6,4 +6,4 @@ ipywidgets
 joblib
 pandas_ta
 qgrid
-perspective-python
+jupyter_contrib_nbextensions
