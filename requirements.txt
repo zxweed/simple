@@ -1,0 +1,9 @@
+numpy
+pandas
+numba
+plotly
+ipywidgets
+joblib
+pandas_ta
+qgrid
+perspective-python
