@@ -4,12 +4,11 @@ dependencies:
   - python
   - numpy
   - pandas
-  - matplotlib
   - qgrid
-  - nodejs
   - perspective-python
   - numba
   - plotly
   - ipywidgets
   - joblib
   - pandas_ta
+  - deap
