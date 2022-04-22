@@ -5,5 +5,5 @@ plotly
 ipywidgets
 joblib
 pandas_ta
-qgrid
+ipyslickgrid
 jupyter_contrib_nbextensions
