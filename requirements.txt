@@ -4,6 +4,7 @@ numba
 plotly
 ipywidgets
 joblib
+tqdm
 pandas_ta
 ipyslickgrid
 jupyter_contrib_nbextensions
