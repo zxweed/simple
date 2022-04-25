@@ -9,3 +9,4 @@ pandas_ta
 ipyslickgrid
 jupyter_contrib_nbextensions
 deap
+python-3.8
