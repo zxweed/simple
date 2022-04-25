@@ -7,3 +7,4 @@ joblib
 pandas_ta
 ipyslickgrid
 jupyter_contrib_nbextensions
+deap
