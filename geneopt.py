@@ -1,0 +1,129 @@
+# -*- coding: utf-8 -*-
+
+from deap import creator, base, tools
+from deap.algorithms import varAnd, eaSimple
+import inspect
+from multiprocessing.pool import Pool
+from random import randrange, randint, uniform
+from contextlib import closing
+from tqdm.auto import tqdm
+from itertools import zip_longest
+import numpy as np
+import pandas as pd
+
+
+class GeneOpt:
+    def __init__(self, target):
+        self.target = target.__wrapped__ if hasattr(target, '__wrapped__') else target
+        spec = inspect.getfullargspec(self.target)
+        self.args = spec.args
+        self.log_columns = self.args + ['Fitness']
+        self.annotations = spec.annotations
+        defaults = [] if spec.defaults is None else reversed(spec.defaults)
+        self.defaults = dict(zip_longest(reversed(self.args), defaults, fillvalue=100))
+        self.log = []
+
+    def genRandom(self, arg):
+        """returns a random value for the argument name, depending on its type and constraints"""
+        if arg in self.annotations:
+            p = self.defaults[arg]
+            if self.annotations[arg] == int:
+                return randrange(*p) if type(p) == tuple else randint(0, p)
+            elif self.annotations[arg] == float:
+                return uniform(p[0], p[1]) if type(p) == tuple else uniform(0, p)
+
+        # default arg type = float(0..100)
+        return uniform(0, 100)
+
+    def genIndividual(self):
+        return [self.genRandom(arg) for arg in self.args]
+
+    def evalOneMax(self, individual):
+        return self.target(*individual),
+
+    def maximize(self, population_size=128, generations=5, callback: callable = None):
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        creator.create("Individual", list, fitness=creator.FitnessMax)
+
+        toolbox = base.Toolbox()
+
+        toolbox.register("individual", tools.initIterate, creator.Individual, self.genIndividual)
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        toolbox.register("evaluate", self.evalOneMax)
+        toolbox.register("mate", tools.cxTwoPoint)
+        toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
+        toolbox.register("select", tools.selTournament, tournsize=3)
+        population = toolbox.population(n=population_size)
+
+        with closing(Pool()) as P:
+            toolbox.register("map", P.map)
+
+            pbar = tqdm(range(generations))
+            for _ in pbar:
+                offspring = varAnd(population, toolbox, cxpb=0.5, mutpb=0.2)
+                fits = toolbox.map(toolbox.evaluate, offspring)
+
+                if callback is not None:
+                    callback(offspring, fits)
+
+                for fit, ind in zip(fits, offspring):
+                    f = fit[0]   # fitness value is tuple always
+                    if type(f) == tuple:
+                        fitness_value, result = f
+                        fitness_tuple = (fitness_value,)
+                        if type(result) == dict:
+                            # only ordinal typed items stored in the log list
+                            filtered_dict = dict(filter(lambda x: type(x[1]) in [str, int, float, np.float64], result.items()))
+                            self.log_columns += list(filter(lambda x: x not in self.log_columns, filtered_dict))
+                            self.log.append((*ind, fitness_value, *filtered_dict.values()))
+                        else:
+                            self.log.append((*ind, *f))
+                    else:
+                        fitness_tuple = fit
+                        self.log.append((*ind, f))
+
+                    ind.fitness.values = fitness_tuple
+
+                population = toolbox.select(offspring, k=len(population))
+                pbar.set_postfix({'fit': f'{fitness_value:,.2f}'})
+
+        del creator.FitnessMax
+        del creator.Individual
+
+        return dict(zip(self.args, tools.selBest(population, k=1)[0]))
+
+    def progress(self, x):
+        print(end='.', flush=True)
+
+    def maxi(self, population_size=128, generations=5):
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        creator.create("Individual", list, typecode='i', fitness=creator.FitnessMax)
+
+        # Attribute generator
+        toolbox = base.Toolbox()
+
+        toolbox.register("individual", tools.initIterate, creator.Individual, self.genIndividual)
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        toolbox.register("evaluate", self.evalOneMax)
+        toolbox.register("mate", tools.cxTwoPoint)
+        toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
+        toolbox.register("select", tools.selTournament, tournsize=13)
+
+        stats = tools.Statistics(lambda ind: ind.fitness.values)
+        stats.register("avg", np.mean)
+        stats.register("max", np.max)
+        stats.register("progress", self.progress)
+
+        hof = tools.HallOfFame(1)
+        with closing(Pool()) as P:
+            toolbox.register("map", P.map)
+            pop_list, log_list = eaSimple(population_size, toolbox, cxpb=0.5, mutpb=0.2,
+                                          ngen=generations, stats=stats, halloffame=hof, verbose=False)
+
+        del creator.FitnessMax
+        del creator.Individual
+
+        self.pop = pd.DataFrame(pop_list, columns=inspect.getfullargspec(self.target).args)
+        self.log = pd.DataFrame(log_list)
+
+        return dict(zip(self.args, tuple(hof.items[0])))
