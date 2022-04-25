@@ -54,20 +54,27 @@ def updateLines(fig: go.FigureWidget, **line_data):
 
     names = [s.name for s in fig.data]
     with fig.batch_update():
-        for line_name in line_data:
+        for line_name in filter(lambda name: name in names, line_data):
             k = names.index(line_name)
             line = line_data[line_name]
             if type(line) == dict:
-                fig.data[k].x = line['x']
+                fig.data[k].x = line['x']/resample
                 fig.data[k].y = line['y']
             else:
-                fig.data[k].y = line
+                resample = max(1, len(line) // 2048)
+                fig.data[k].y = line[::resample]
 
 
-def interactFigure(model: callable, lines: dict, height: int=700, rows: int=1, template='plotly_white') -> widgets:
+def updateSliders(sliders: widgets, **values: dict):
+    """Update slider values"""
+    for slider in sliders:
+        slider.value = values[slider.description]
+
+
+def interactFigure(model: callable, lines: dict, height: int = 700, rows: int = 1, template='plotly_white') -> widgets:
     sp = getfullargspec(model)
     defaults = dict(zip_longest(reversed(sp.args), [] if sp.defaults is None else reversed(sp.defaults), fillvalue=1))
-    # defaults = dict(reversed(defaults.items()))
+    defaults = dict(reversed(defaults.items()))
     fig = chartFigure(height=height, rows=rows, template=template, lines=lines)
 
     def update(**param):
