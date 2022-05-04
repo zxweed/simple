@@ -1,3 +1,6 @@
 # Contains some very simple trading strategies:
 
-[b]very.simple.chart[/b] - Fast interactive parametrized market data chart
+[very.simple.chart] - Fast interactive parametrized market data chart
+
+
+[very.simple.chart]: <https://mybinder.org/v2/gh/zxweed/simple/main?filepath=very.simple.chart.ipynb>
