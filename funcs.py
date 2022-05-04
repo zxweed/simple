@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from numba import njit
 from joblib import Parallel, delayed
+from numpy import log, polyfit, sqrt, std, subtract
 
 
 def symlog(x):
@@ -194,7 +195,7 @@ def RGG(V):
     """Returns the series with colors for the signal"""
     return np.where(V < 0, 'red', np.where(V > 0, 'green', 'gray'))
 
-    
+
 def pdMA(X: pd.DataFrame, p: int) -> pd.DataFrame:
     """Moving average detrending"""
     M = X - X.rolling(p).mean()
@@ -207,3 +208,15 @@ def pdEMA(X: pd.DataFrame, p: int) -> pd.DataFrame:
     M = X - X.ewm(p).mean()
     M.columns = ['EMA{}({})'.format(p, c) for c in X.columns]
     return M
+
+
+def hurst(X: np.array) -> float:
+    """Returns the Hurst Exponent of the time series vector X"""
+    lags = range(2, min(100, len(X)-1))
+
+    # Calculate the array of the variances of the lagged differences
+    tau = [sqrt(std(subtract(X[lag:], X[:-lag]))) for lag in lags]
+
+    # Use a linear fit to estimate the Hurst Exponent
+    poly = polyfit(log(lags), log(tau), 1)
+    return poly[0]*2.0
