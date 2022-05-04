@@ -10,9 +10,12 @@ from tqdm.auto import tqdm
 from itertools import zip_longest
 import numpy as np
 import pandas as pd
+from itertools import product
+from pretty import tqdmParallel
+from joblib import delayed
 
 
-class GeneOpt:
+class Opt:
     def __init__(self, target):
         self.target = target.__wrapped__ if hasattr(target, '__wrapped__') else target
         spec = inspect.getfullargspec(self.target)
@@ -20,15 +23,56 @@ class GeneOpt:
         self.log_columns = self.args + ['Fitness']
         self.annotations = spec.annotations
         defaults = [] if spec.defaults is None else reversed(spec.defaults)
-        self.defaults = dict(zip_longest(reversed(self.args), defaults, fillvalue=100))
+        self.defaults = dict(reversed(list(zip_longest(reversed(self.args), defaults, fillvalue=100))))
         self.log = []
+
+
+def inclusive_range(*args):
+    nargs = len(args)
+    if nargs == 0:
+        raise TypeError("you need to write at least a value")
+    elif nargs == 1:
+        stop = args[0]
+        start = 0
+        step = 1
+    elif nargs == 2:
+        (start, stop) = args
+        step = 1
+    elif nargs == 3:
+        (start, stop, step) = args
+    else:
+        raise TypeError("Inclusive range was expected at most 3 arguments,got {}".format(nargs))
+    i = start
+    while i <= stop:
+        yield i
+        i += step
+
+
+class GridOpt(Opt):
+    """Full grid optimization engine"""
+
+    def fullSearch(self, callback: callable = None):
+        X = product(*(inclusive_range(*v) for v in self.defaults.values()))
+        grid = [dict(zip(self.args, x)) for x in X]
+
+        with tqdmParallel(total=len(grid), backend='multiprocessing') as P:
+            FUNC = delayed(self.target)
+            log = P(FUNC(**arg) for arg in grid)
+
+        self.log_columns += list(log[0][1].keys())
+        self.log = [(*x.values(), r[0], *r[1].values()) for x, r in zip(grid, log)]
+        return max([x[0] for x in self.log])
+
+
+class GeneOpt(Opt):
+    """Genetic optimization engine"""
 
     def genRandom(self, arg):
         """returns a random value for the argument name, depending on its type and constraints"""
         if arg in self.annotations:
             p = self.defaults[arg]
             if self.annotations[arg] == int:
-                return randrange(*p) if type(p) == tuple else randint(0, p)
+                return randrange(*p) if type(p) == tuple else randint(0, p+1)
             elif self.annotations[arg] == float:
                 return uniform(p[0], p[1]) if type(p) == tuple else uniform(0, p)
 
