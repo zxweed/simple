@@ -3,12 +3,11 @@ from numba import njit
 from scipy import signal
 
 
-def hurst_exponent(candles: np.ndarray, min_chunksize: int = 8, max_chunksize: int = 200, num_chunksize: int = 5,
-                   method: int = 1, source_type: str = "close") -> float:
+def hurst_exponent(source: np.ndarray, min_chunksize: int = 8, max_chunksize: int = 200, num_chunksize: int = 5, method: int = 1) -> float:
     """
     Hurst Exponent
 
-    :param candles: np.ndarray
+    :param source: np.ndarray
     :param min_chunksize: int - default: 8
     :param max_chunksize: int - default: 200
     :param num_chunksize: int - default: 5
@@ -18,14 +17,12 @@ def hurst_exponent(candles: np.ndarray, min_chunksize: int = 8, max_chunksize: i
     :return: float
     """
 
-    source = candles
-
     if method == 0:
-        h = hurst_rs(np.diff(source), min_chunksize, max_chunksize, num_chunksize)
+        h = HurstRS(np.diff(source), min_chunksize, max_chunksize, num_chunksize)
     elif method == 1:
-        h = hurst_dma(source, min_chunksize, max_chunksize, num_chunksize)
+        h = HurstDMA(source, min_chunksize, max_chunksize, num_chunksize)
     elif method == 2:
-        h = hurst_dsod(source)
+        h = HurstDSOD(source)
     else:
         raise NotImplementedError('The method choose is not implemented.')
 
@@ -33,8 +30,8 @@ def hurst_exponent(candles: np.ndarray, min_chunksize: int = 8, max_chunksize: i
 
 
 @njit(nogil=True)
-def hurst_rs(X: np.array, window, min_chunksize: int = 8, max_chunksize: int = 200, num_chunksize: int = 5) -> np.array:
-    """Estimate the Hurst exponent using R/S method.
+def HurstRS(X: np.array, period: int, min_chunksize: int = 8, max_chunksize: int = 200, num_chunksize: int = 5) -> np.array:
+    """
     Estimates the Hurst (H) exponent using the R/S method from the time series.
     The R/S method consists of dividing the series into pieces of equal size
     `series_len` and calculating the rescaled range. This repeats the process
@@ -44,9 +41,11 @@ def hurst_rs(X: np.array, window, min_chunksize: int = 8, max_chunksize: int = 2
     through the parameter `step_chunksize`.
     Parameters
     ----------
-    x : 1D-array
+    X : 1D-array
         A time series to calculate hurst exponent, must have more elements
         than `min_chunksize` and `max_chunksize`.
+    period: int
+        Length of sliding window
     min_chunksize : int
         This parameter allows you to control the minimum window size.
     max_chunksize : int
@@ -62,20 +61,19 @@ def hurst_rs(X: np.array, window, min_chunksize: int = 8, max_chunksize: int = 2
         A estimation of Hurst exponent.
     References
     ----------
-    Hurst, H. E. (1951). Long term storage capacity of reservoirs. ASCE
-    Transactions, 116(776), 770-808.
+    Hurst, H. E. (1951). Long term storage capacity of reservoirs. ASCE Transactions, 116(776), 770-808.
     Alessio, E., Carbone, A., Castelli, G. et al. Eur. Phys. J. B (2002) 27:
     197. http://dx.doi.org/10.1140/epjb/e20020150
     """
 
     max_chunksize += 1
     result = np.zeros(len(X), dtype=np.float64)
-    rs_tmp = np.empty(window, dtype=np.float64)
+    rs_tmp = np.empty(period, dtype=np.float64)
     chunk_size_list = np.linspace(min_chunksize, max_chunksize, num_chunksize).astype(np.int64)
     rs_values_list = np.empty(num_chunksize, dtype=np.float64)
 
-    for p in range(len(X)-window):
-        k = p+window
+    for p in range(len(X) - period):
+        k = p + period
         x = X[p:k]
 
         # 1. The series is divided into chunks of chunk_size_list size
@@ -110,11 +108,11 @@ def hurst_rs(X: np.array, window, min_chunksize: int = 8, max_chunksize: int = 2
 
         result[k] = h
 
-    result[:window] = result[window]
+    result[:period] = result[period]
     return result
 
 
-def hurst_dma(prices, min_chunksize=8, max_chunksize=200, num_chunksize=5):
+def HurstDMA(X: np.array, period: int, min_chunksize=8, max_chunksize=200, num_chunksize=5) -> np.array:
     """Estimate the Hurst exponent using R/S method.
 
     Estimates the Hurst (H) exponent using the DMA method from the time series.
@@ -128,7 +126,7 @@ def hurst_dma(prices, min_chunksize=8, max_chunksize=200, num_chunksize=5):
 
     Parameters
     ----------
-    prices
+    X
     min_chunksize
     max_chunksize
     num_chunksize
@@ -144,25 +142,33 @@ def hurst_dma(prices, min_chunksize=8, max_chunksize=200, num_chunksize=5):
     197. https://dx.doi.org/10.1140/epjb/e20020150
 
     """
+
+    result = np.zeros(len(X), dtype=np.float64)
     max_chunksize += 1
-    N = len(prices)
     n_list = np.arange(min_chunksize, max_chunksize, num_chunksize, dtype=np.int64)
     dma_list = np.empty(len(n_list))
-    factor = 1 / (N - max_chunksize)
-    # sweeping n_list
-    for i, n in enumerate(n_list):
-        b = np.divide([n - 1] + (n - 1) * [-1], n)  # do the same as:  y - y_ma_n
-        noise = np.power(signal.lfilter(b, 1, prices)[max_chunksize:], 2)
-        dma_list[i] = np.sqrt(factor * np.sum(noise))
+    factor = 1 / (period - max_chunksize)
 
-    H, const = np.linalg.lstsq(
-        a=np.vstack([np.log10(n_list), np.ones(len(n_list))]).T,
-        b=np.log10(dma_list), rcond=None
-    )[0]
-    return H
+    for p in range(len(X) - period):
+        k = p + period
+        x = X[p:k]
+        # sweeping n_list
+        for i, n in enumerate(n_list):
+            b = np.divide([n - 1] + (n - 1) * [-1], n)  # do the same as:  y - y_ma_n
+            noise = np.power(signal.lfilter(b, 1, x)[max_chunksize:], 2)
+            dma_list[i] = np.sqrt(factor * np.sum(noise))
+
+        h, const = np.linalg.lstsq(
+            a=np.vstack([np.log10(n_list), np.ones(len(n_list))]).T,
+            b=np.log10(dma_list), rcond=None
+        )[0]
+        result[k] = h
+
+    result[:period] = result[period]
+    return result
 
 
-def hurst_dsod(x):
+def HurstDSOD(X, period):
     """Estimate Hurst exponent on data timeseries.
 
     The estimation is based on the discrete second order derivative. Consists on
@@ -188,22 +194,29 @@ def hurst_dsod(x):
 
     Notes
     -----
-    This hurst_ets is data literal traduction of wfbmesti.m of waveleet toolbox
+    This hurst_ets is data literal transduction of wfbmesti.m of wavelet toolbox
     from matlab.
     """
-    y = np.cumsum(np.diff(x, axis=0), axis=0)
+    result = np.zeros(len(X), dtype=np.float64)
+    for p in range(len(X) - period):
+        k = p + period
+        x = X[p:k]
+        y = np.cumsum(np.diff(x, axis=0), axis=0)
 
-    # second order derivative
-    b1 = [1, -2, 1]
-    y1 = signal.lfilter(b1, 1, y, axis=0)
-    y1 = y1[len(b1) - 1:]  # first values contain filter artifacts
+        # second order derivative
+        b1 = [1, -2, 1]
+        y1 = signal.lfilter(b1, 1, y, axis=0)
+        y1 = y1[len(b1) - 1:]  # first values contain filter artifacts
 
-    # wider second order derivative
-    b2 = [1, 0, -2, 0, 1]
-    y2 = signal.lfilter(b2, 1, y, axis=0)
-    y2 = y2[len(b2) - 1:]  # first values contain filter artifacts
+        # wider second order derivative
+        b2 = [1, 0, -2, 0, 1]
+        y2 = signal.lfilter(b2, 1, y, axis=0)
+        y2 = y2[len(b2) - 1:]  # first values contain filter artifacts
 
-    s1 = np.mean(y1 ** 2, axis=0)
-    s2 = np.mean(y2 ** 2, axis=0)
+        s1 = np.mean(y1 ** 2, axis=0)
+        s2 = np.mean(y2 ** 2, axis=0)
 
-    return 0.5 * np.log2(s2 / s1)
+        result[k] = 0.5 * np.log2(s2 / s1)
+
+    result[:period] = result[period]
+    return result
