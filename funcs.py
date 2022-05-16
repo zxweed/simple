@@ -3,9 +3,10 @@ import numpy as np
 import pandas as pd
 from numba import njit
 from joblib import Parallel, delayed
-from numpy import log, polyfit, sqrt, std, subtract
 
 
+@np.vectorize
+@njit(nogil=True)
 def symlog(x):
     """Symmetrical log transform with a linear section from -1 to 1"""
     if x > 1:
@@ -212,11 +213,11 @@ def pdEMA(X: pd.DataFrame, p: int) -> pd.DataFrame:
 
 def hurst(X: np.array) -> float:
     """Returns the Hurst Exponent of the time series vector X"""
-    lags = range(2, min(100, len(X)-1))
+    lags = range(2, min(100, len(X) - 1))
 
     # Calculate the array of the variances of the lagged differences
-    tau = [sqrt(std(subtract(X[lag:], X[:-lag]))) for lag in lags]
+    tau = [np.std(np.subtract(X[lag:], X[:-lag])) for lag in lags]
 
     # Use a linear fit to estimate the Hurst Exponent
-    poly = polyfit(log(lags), log(tau), 1)
-    return poly[0]*2.0
+    fit = np.polyfit(np.log(lags), np.log(tau), 1)
+    return fit[0]
