@@ -183,7 +183,7 @@ def rolling_apply(func: Callable, window: int, *arrays: np.ndarray, n_jobs: int 
             arr = list(map(_apply_func_to_arrays, rolls))
     else:
         f = delayed(_apply_func_to_arrays)
-        P = tqdmParallel(total=len(array)-window, require='sharedmem') if progress else Parallel(n_jobs=-1, require='sharedmem')
+        P = tqdmParallel(total=len(array)-window) if progress else Parallel(n_jobs=-1)
         arr = P(f(idxs[[0, -1]]) for idxs in rolls)
 
     return prepend_na(arr, n=window-1)

@@ -4,6 +4,7 @@ from plotly.subplots import make_subplots
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
 from ipywidgets import interact, widgets, interactive, HBox, VBox
+from plotly_resampler import FigureWidgetResampler
 
 
 def addLines(fig: go.FigureWidget, **line_styles):
@@ -12,16 +13,21 @@ def addLines(fig: go.FigureWidget, **line_styles):
         line = line_styles[line_name]
         line_class = go.scattergl.Marker if line.get('mode') == 'markers' else go.scattergl.Line
 
-        upkw = {}  # parameters not belong to the Line will be moved to upper-level
+        trace_dict = {}  # parameters not belong to the Line will be moved to upper-levels
+        scatter_dict = {}
+        line_dict = {}
         for param in line:
-            if param not in getfullargspec(line_class).args:
-                upkw[param] = line[param]
-        param_dict = {param: line[param] for param in line if param not in upkw}
+            if param in getfullargspec(line_class).args:
+                line_dict[param] = line[param]
+            elif param in getfullargspec(go.Scattergl).args:
+                scatter_dict[param] = line[param]
+            else:
+                trace_dict[param] = line[param]
 
         if line_class == go.scattergl.Marker:
-            fig.add_scattergl(name=line_name, marker=param_dict, **upkw)
+            fig.add_trace(go.Scattergl(name=line_name, marker=line_dict, **scatter_dict), limit_to_view=True, hf_y=[0], **trace_dict)
         else:
-            fig.add_scattergl(name=line_name, line=param_dict, **upkw)
+            fig.add_trace(go.Scattergl(name=line_name, line=line_dict, **scatter_dict), limit_to_view=True, hf_y=[0], **trace_dict)
 
 
 def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, **layout_kwargs) -> go.FigureWidget:
@@ -34,7 +40,9 @@ def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, *
     else:
         row_heights = None
 
-    fig = go.FigureWidget(make_subplots(rows=rows, cols=1, row_heights=row_heights, vertical_spacing=0.03, shared_xaxes=True, specs=specs))
+    fig = FigureWidgetResampler(
+        go.FigureWidget(make_subplots(rows=rows, cols=1, row_heights=row_heights,
+                                      vertical_spacing=0.03, shared_xaxes=True, specs=specs)))
 
     fig.update_layout(autosize=True, height=height, template=template,
                       legend=dict(x=0.1, y=1, orientation="h"),
@@ -59,11 +67,14 @@ def updateLines(fig: go.FigureWidget, **line_data):
             k = names.index(line_name)
             line = line_data[line_name]
             if type(line) == dict:
-                fig.data[k].x = line['x']/resample
-                fig.data[k].y = line['y']
+                fig.hf_data[k]['x'] = line['x']
+                fig.hf_data[k]['y'] = line['y']
             else:
-                resample = max(1, len(line) // 2048)
-                fig.data[k].y = line[::resample]
+                fig.hf_data[k]['x'] = range(len(line))
+                fig.hf_data[k]['y'] = line
+            fig.reload_data()
+
+    fig.reload_data()
 
 
 def updateSliders(sliders: widgets, **values: dict):
