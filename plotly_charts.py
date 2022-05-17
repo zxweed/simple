@@ -25,9 +25,11 @@ def addLines(fig: go.FigureWidget, **line_styles):
                 trace_dict[param] = line[param]
 
         if line_class == go.scattergl.Marker:
-            fig.add_trace(go.Scattergl(name=line_name, marker=line_dict, **scatter_dict), limit_to_view=True, hf_y=[0], **trace_dict)
+            scatter_dict['marker'] = line_dict
         else:
-            fig.add_trace(go.Scattergl(name=line_name, line=line_dict, **scatter_dict), limit_to_view=True, hf_y=[0], **trace_dict)
+            scatter_dict['line'] = line_dict
+
+        fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, hf_y=[0], **trace_dict)
 
 
 def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, **layout_kwargs) -> go.FigureWidget:
@@ -35,8 +37,8 @@ def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, *
 
     specs = [[{"secondary_y": True}] for _ in range(rows)]
     if rows > 1:
-        k = (0.1 + 0.1*rows)
-        row_heights = [1 - k] + list(repeat(k/(rows-1), rows-1))
+        k = (0.1 + 0.1 * rows)
+        row_heights = [1 - k] + list(repeat(k / (rows - 1), rows - 1))
     else:
         row_heights = None
 
@@ -94,6 +96,7 @@ def interactFigure(model: callable, line_styles: dict, height: int = 700, rows: 
     def update(**arg):
         updateLines(fig, **model(**arg)[1])
 
+    print(defaults)
     sliders = interactive(update, **defaults).children[:-1]
 
     # first run with initial values
@@ -113,8 +116,10 @@ def chartParallel(X: pd.DataFrame) -> widgets:
 def chartEquity(F):
     """Interactive equity chart with threshold"""
 
-    fig = go.FigureWidget(make_subplots(rows=2, cols=1, vertical_spacing=0.03, row_heights=[0.8, 0.2], specs=[[{"secondary_y": True}], [{}]]))
-    fig.update_layout(margin=dict(l=40, r=20, t=35, b=15), height=600, template='none', legend_y=0.98, legend_x=0.4, legend_orientation="h", yaxis2_showgrid=False)
+    fig = go.FigureWidget(make_subplots(rows=2, cols=1, vertical_spacing=0.03, row_heights=[0.8, 0.2],
+                                        specs=[[{"secondary_y": True}], [{}]]))
+    fig.update_layout(margin=dict(l=40, r=20, t=35, b=15), height=600, template='none', legend_y=0.98,
+                      legend_x=0.4, legend_orientation="h", yaxis2_showgrid=False)
 
     # equity lines
     fig.add_scattergl(mode='lines', name='Price', line_color='rgb(242,242,242)', secondary_y=True, line_width=6)
