@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+import re
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 from inspect import getfullargspec
@@ -53,7 +55,7 @@ def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, *
 
     if line_styles is not None:
         addLines(fig, **line_styles)
-        
+
     fig.update_xaxes(spikemode='across+marker', spikedash='dot', spikethickness=2, spikesnap='cursor')
     fig.update_traces(xaxis='x2')
 
@@ -63,7 +65,8 @@ def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, *
 def updateLines(fig: go.FigureWidget, **line_data):
     """Update lines xy-values"""
 
-    names = [s.name for s in fig.data]
+    # strip html tags and some others auxiliary marks
+    names = [re.sub('<[^<]+?>|\[.*\]|~.*|\s', '', s.name) for s in fig.data]
     with fig.batch_update():
         for line_name in filter(lambda name: name in names, line_data):
             k = names.index(line_name)
@@ -72,11 +75,17 @@ def updateLines(fig: go.FigureWidget, **line_data):
                 fig.hf_data[k]['x'] = line['x']
                 fig.hf_data[k]['y'] = line['y']
             else:
-                fig.hf_data[k]['x'] = range(len(line))
-                fig.hf_data[k]['y'] = line
-            fig.reload_data()
+                new_x = np.arange(len(line))
+                if hash(new_x.tobytes()) != hash(fig.hf_data[k]['x'].tobytes()):
+                    fig.hf_data[k]['x'] = new_x
 
-    fig.reload_data()
+                new_y = line
+                if hash(new_y.tobytes()) != hash(fig.hf_data[k]['y'].tobytes()):
+                    fig.hf_data[k]['y'] = line
+
+                fig.reload_data()
+
+    #fig.reload_data()
 
 
 def updateSliders(sliders: widgets, **values: dict):
@@ -96,7 +105,6 @@ def interactFigure(model: callable, line_styles: dict, height: int = 700, rows: 
     def update(**arg):
         updateLines(fig, **model(**arg)[1])
 
-    print(defaults)
     sliders = interactive(update, **defaults).children[:-1]
 
     # first run with initial values
