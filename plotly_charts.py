@@ -26,12 +26,8 @@ def addLines(fig: go.FigureWidget, **line_styles):
             else:
                 trace_dict[param] = line[param]
 
-        if line_class == go.scattergl.Marker:
-            scatter_dict['marker'] = line_dict
-        else:
-            scatter_dict['line'] = line_dict
-
-        fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, hf_y=[0], **trace_dict)
+        scatter_dict['marker' if line_class == go.scattergl.Marker else 'line'] = line_dict
+        fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
 def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, **layout_kwargs) -> go.FigureWidget:
@@ -75,17 +71,10 @@ def updateLines(fig: go.FigureWidget, **line_data):
                 fig.hf_data[k]['x'] = line['x']
                 fig.hf_data[k]['y'] = line['y']
             else:
-                new_x = np.arange(len(line))
-                if hash(new_x.tobytes()) != hash(fig.hf_data[k]['x'].tobytes()):
-                    fig.hf_data[k]['x'] = new_x
+                fig.hf_data[k]['x'] = np.arange(len(line))
+                fig.hf_data[k]['y'] = line
 
-                new_y = line
-                if hash(new_y.tobytes()) != hash(fig.hf_data[k]['y'].tobytes()):
-                    fig.hf_data[k]['y'] = line
-
-                fig.reload_data()
-
-    #fig.reload_data()
+        fig.reload_data()
 
 
 def updateSliders(sliders: widgets, **values: dict):
@@ -118,40 +107,4 @@ def chartParallel(X: pd.DataFrame) -> widgets:
     """Parallel coordinates plot for optimization results"""
     fig = go.FigureWidget(data=go.Parcoords(dimensions=[{'label': c, 'values': X[c]} for c in X.columns]))
     fig.update_layout(autosize=True, height=400, template='plotly_white', margin=dict(l=45, r=45, b=20, t=50, pad=3))
-    return fig
-
-
-def chartEquity(F):
-    """Interactive equity chart with threshold"""
-
-    fig = go.FigureWidget(make_subplots(rows=2, cols=1, vertical_spacing=0.03, row_heights=[0.8, 0.2],
-                                        specs=[[{"secondary_y": True}], [{}]]))
-    fig.update_layout(margin=dict(l=40, r=20, t=35, b=15), height=600, template='none', legend_y=0.98,
-                      legend_x=0.4, legend_orientation="h", yaxis2_showgrid=False)
-
-    # equity lines
-    fig.add_scattergl(mode='lines', name='Price', line_color='rgb(242,242,242)', secondary_y=True, line_width=6)
-    fig.add_scattergl(mode='lines', name='Ideal midprice equity', line_color='gray', line_shape='hv')
-    fig.add_scattergl(mode='lines', name='Gross Equity', line_color='blue', line_shape='hv')
-    fig.add_scattergl(mode='lines', name='Equity w/ fee', line_color='red', line_shape='hv')
-
-    # profit histogram
-    fig.add_histogram(opacity=0.65, name='Trade Histogram', row=2, col=1)
-    fig.add_vline(0, line_dash='dot', row=2, col=1)
-
-    @interact(Threshold=(0, F.index.max(), 1))
-    def update(Threshold):
-        D = F.loc[Threshold].Deals
-        k = max(1, len(D)//1000)
-        with fig.batch_update():
-            fig.data[0].x = fig.data[1].x = fig.data[2].x = fig.data[3].x = D.x1[::k]
-
-            fig.data[0].y = D.Price0[::k]
-            fig.data[1].y = D.Ideal.cumsum()[::k]
-            fig.data[2].y = (D.Profit+D.Fee).cumsum()[::k]
-            fig.data[3].y = D.Profit.cumsum()[::k]
-            fig.data[4].x = D.Profit
-
-            fig.layout.title = f'Threshold={Threshold} Count={len(D)}'
-
     return fig
