@@ -35,4 +35,4 @@ def ohlcVolume(T: np.array, threshold: int) -> np.array:
     OHLC = np.zeros(len(T), dtype=TOHLC)
     c = resampleVolume(T, threshold, OHLC)
     OHLC.resize(c, refcheck=False)
-    return OHLC
+    return OHLC.view(np.recarray)
