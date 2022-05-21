@@ -53,7 +53,7 @@ def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, *
         addLines(fig, **line_styles)
 
     fig.update_xaxes(spikemode='across+marker', spikedash='dot', spikethickness=2, spikesnap='cursor')
-    fig.update_traces(xaxis='x2')
+    #fig.update_traces(xaxis='x2')
 
     return fig
 
