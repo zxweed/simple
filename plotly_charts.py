@@ -108,3 +108,24 @@ def chartParallel(X: pd.DataFrame) -> widgets:
     fig = go.FigureWidget(data=go.Parcoords(dimensions=[{'label': c, 'values': X[c]} for c in X.columns]))
     fig.update_layout(autosize=True, height=400, template='plotly_white', margin=dict(l=45, r=45, b=20, t=50, pad=3))
     return fig
+
+
+def iterable(obj):
+    try:
+        iter(obj)
+        return True
+    except:
+        return False
+
+
+def scatter(Y, X=None, **scatter_kw) -> FigureWidgetResampler:
+    """Simple scatterplot/line chart with dynamic resampling"""
+    fig = FigureWidgetResampler(go.Figure(layout={'height':400, 'template': 'plotly_white',
+                              'margin': dict(l=45, r=5, b=10, t=25, pad=3), 'legend_orientation': 'h'}))
+
+    if iterable(Y) and iterable(Y[0]):
+        for y in Y:
+            fig.add_trace(go.Scattergl(**scatter_kw), hf_x=X, hf_y=y)
+    else:
+        fig.add_trace(go.Scattergl(**scatter_kw), hf_x=X, hf_y=Y)
+    return fig

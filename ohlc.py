@@ -38,8 +38,51 @@ def resampleVolume(T: np.array, threshold: int, OHLC: np.array) -> int:
     return c-1
 
 
+@njit(nogil=True)
+def midPrice(T: np.array) -> np.array:
+    dest = np.zeros_like(T.PriceA)
+    stepPrice = 0.5
+    for t in range(len(T)):
+        dest[t] = T.PriceA[t] - stepPrice / 2 if T.VolumeA[t] > 0 else T.PriceA[t] + stepPrice / 2
+    return dest
+
+
+@njit(nogil=True)
+def resampleDebounce(dest: np.array) -> int:
+    t = c = 0
+    while t < len(dest):
+        while dest[t] == dest[c]:
+            t += 1
+            if t == len(dest):
+                return c
+        c += 1
+        dest[c] = dest[t]
+
+    return c
+
+
+def debounce(T: np.array) -> np.array:
+    Result = midPrice(T)
+    c = resampleDebounce(Result)
+    return np.resize(Result, c).view(np.recarray)
+
+
 def ohlcVolume(T: np.array, threshold: int) -> np.array:
     OHLC = np.zeros(len(T), dtype=TOHLC)
     c = resampleVolume(T, threshold, OHLC)
     OHLC.resize(c, refcheck=False)
     return OHLC.view(np.recarray)
+
+
+def tickDebounce(T: np.array) -> np.array:
+    Result = np.zeros(len(T), dtype=float)
+    c = resampleDebounce(T, Result)
+    Result.resize(c, refcheck=False)
+    return Result.view(np.recarray)
+
+
+def tickVolume(T: np.array, threshold: int) -> np.array:
+    OHLC = np.zeros(len(T), dtype=TOHLC)
+    c = resampleVolume(T, threshold, OHLC)
+    OHLC.resize(c, refcheck=False)
+    return OHLC[['DT', 'Close']].view(np.recarray)
