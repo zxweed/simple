@@ -29,6 +29,8 @@ def addLines(fig: go.FigureWidget, **line_styles):
                 trace_dict[param] = line[param]
 
         scatter_dict['marker' if line_class == go.scattergl.Marker else 'line'] = line_dict
+        if 'row' in trace_dict and 'col' not in trace_dict:
+            trace_dict['col'] = 1
         fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
