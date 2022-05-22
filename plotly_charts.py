@@ -5,7 +5,7 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
-from ipywidgets import interact, widgets, interactive, HBox, VBox
+from ipywidgets import widgets, interactive, HBox, VBox
 from plotly_resampler import FigureWidgetResampler
 
 
@@ -54,7 +54,7 @@ def chartFigure(height: int = 700, rows: int = 1, template:str = 'plotly_white',
         addLines(fig, **line_styles)
 
     fig.update_xaxes(spikemode='across+marker', spikedash='dot', spikethickness=2, spikesnap='cursor')
-    #fig.update_traces(xaxis='x2')
+    fig.update_traces(xaxis=f'x{rows}')
 
     return fig
 
