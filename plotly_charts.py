@@ -65,7 +65,7 @@ def updateLines(fig: go.FigureWidget, **line_data):
     """Update lines xy-values"""
 
     # strip html tags and some others auxiliary marks
-    names = [re.sub('<[^<]+?>|\[.*\]|~.*|\s', '', s.name) for s in fig.data]
+    names = [re.sub('<[^<]+?>|\[.*]|~.*|\s', '', s.name) for s in fig.data]
     with fig.batch_update():
         for line_name in filter(lambda name: name in names, line_data):
             k = names.index(line_name)
