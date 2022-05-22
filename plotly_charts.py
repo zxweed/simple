@@ -13,8 +13,10 @@ def addLines(fig: go.FigureWidget, **line_styles):
     """Add line (or lines) to the figure"""
     for line_name in line_styles:
         line = line_styles[line_name]
-        line_class = go.scattergl.Marker if line.get('mode') == 'markers' else go.scattergl.Line
+        if type(line) != dict:
+            line = {'hf_y': line}  # if there is only one value specified - interpret as Y series
 
+        line_class = go.scattergl.Marker if line.get('mode') == 'markers' else go.scattergl.Line
         trace_dict = {}  # parameters not belong to the Line will be moved to upper-levels
         scatter_dict = {}
         line_dict = {}
@@ -30,7 +32,7 @@ def addLines(fig: go.FigureWidget, **line_styles):
         fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
-def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, **layout_kwargs) -> go.FigureWidget:
+def chartFigure(height: int = 700, rows: int = 1, template:str = 'plotly_white', **line_styles) -> go.FigureWidget:
     """Create default chart widget with horizontal subplots"""
 
     specs = [[{"secondary_y": True}] for _ in range(rows)]
@@ -46,8 +48,7 @@ def chartFigure(height=700, rows=1, template='plotly_white', line_styles=None, *
 
     fig.update_layout(autosize=True, height=height, template=template,
                       legend=dict(x=0.1, y=1, orientation="h"),
-                      margin=dict(l=45, r=15, b=10, t=30, pad=3),
-                      **layout_kwargs)
+                      margin=dict(l=45, r=15, b=10, t=30, pad=3))
 
     if line_styles is not None:
         addLines(fig, **line_styles)
@@ -83,7 +84,7 @@ def updateSliders(sliders: widgets, **values: dict):
         slider.value = values[slider.description]
 
 
-def interactFigure(model: callable, line_styles: dict, height: int = 700, rows: int = 1, template='plotly_white') -> widgets:
+def interactFigure(model: callable, line_styles: dict, height: int = 700, rows: int = 1, template: str = 'plotly_white') -> widgets:
     """Interactive chart with model's internal data-series and sliders to change parameters"""
 
     spec = getfullargspec(model)
@@ -107,25 +108,4 @@ def chartParallel(X: pd.DataFrame) -> widgets:
     """Parallel coordinates plot for optimization results"""
     fig = go.FigureWidget(data=go.Parcoords(dimensions=[{'label': c, 'values': X[c]} for c in X.columns]))
     fig.update_layout(autosize=True, height=400, template='plotly_white', margin=dict(l=45, r=45, b=20, t=50, pad=3))
-    return fig
-
-
-def iterable(obj):
-    try:
-        iter(obj)
-        return True
-    except:
-        return False
-
-
-def scatter(Y, X=None, **scatter_kw) -> FigureWidgetResampler:
-    """Simple scatterplot/line chart with dynamic resampling"""
-    fig = FigureWidgetResampler(go.Figure(layout={'height':400, 'template': 'plotly_white',
-                              'margin': dict(l=45, r=5, b=10, t=25, pad=3), 'legend_orientation': 'h'}))
-
-    if iterable(Y) and iterable(Y[0]):
-        for y in Y:
-            fig.add_trace(go.Scattergl(**scatter_kw), hf_x=X, hf_y=y)
-    else:
-        fig.add_trace(go.Scattergl(**scatter_kw), hf_x=X, hf_y=Y)
     return fig
