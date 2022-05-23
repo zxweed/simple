@@ -15,6 +15,7 @@ default_template = 'plotly_white'
 
 def addLines(fig: go.FigureWidget, **line_styles):
     """Add line (or lines) to the figure"""
+
     for line_name in line_styles:
         line = line_styles[line_name]
         if type(line) != dict:
@@ -86,11 +87,13 @@ def updateLines(fig: go.FigureWidget, **line_data):
 
 def updateSliders(sliders: widgets, **values: dict):
     """Update slider values"""
+
     for slider in sliders:
         slider.value = values[slider.description]
 
 
-def interactFigure(model: callable, line_styles: dict, height: int = 700, rows: int = 1, template: str = default_template) -> widgets:
+def interactFigure(model: callable, line_styles: dict,
+                   height: int = 700, rows: int = 1, template: str = default_template) -> widgets:
     """Interactive chart with model's internal data-series and sliders to change parameters"""
 
     spec = getfullargspec(model)
@@ -110,7 +113,8 @@ def interactFigure(model: callable, line_styles: dict, height: int = 700, rows: 
     return VBox([HBox(sliders), fig])
 
 
-def interactTable(model: callable, line_styles: dict, X: pd.DataFrame, height: int = 700, rows: int = 1, template: str = default_template) -> widgets:
+def interactTable(model: callable, line_styles: dict, X: pd.DataFrame,
+                  height: int = 700, rows: int = 1, template: str = default_template) -> widgets:
     """Interactive parameter table browser"""
 
     box = interactFigure(model, line_styles, height=height, rows=rows, template=template)
@@ -119,9 +123,13 @@ def interactTable(model: callable, line_styles: dict, X: pd.DataFrame, height: i
         changed = grid.get_changed_df()
         k = event['new'][0]
         selected = changed.iloc[k:k + 1].to_dict('records')[0]
-        param = dict(filter(lambda x: x[0] in X.columns, selected.items()))
-        updateSliders(box.children[0].children, **param)
-        updateLines(box.children[1], **model(**param)[1])
+        param = dict(filter(lambda x: x[0] in getfullargspec(model).args, selected.items()))
+
+        sliders = box.children[0].children
+        updateSliders(sliders, **param)
+
+        fig = box.children[1]
+        updateLines(fig, **model(**param)[1])
 
     grid = show_grid(X, grid_options={'editable': False, 'forceFitColumns': True, 'multiSelect': False},
                      column_options={'defaultSortAsc': False})
@@ -130,9 +138,9 @@ def interactTable(model: callable, line_styles: dict, X: pd.DataFrame, height: i
     return VBox([box, grid])
 
 
-def chartParallel(X: pd.DataFrame) -> widgets:
+def chartParallel(X: pd.DataFrame, height: int = 400) -> widgets:
     """Parallel coordinates plot for optimization results"""
     fig = go.FigureWidget(data=go.Parcoords(dimensions=[{'label': c, 'values': X[c]} for c in X.columns]))
-    fig.update_layout(autosize=True, height=400, template=default_template, margin=dict(l=45, r=45, b=20, t=50, pad=3))
+    fig.update_layout(autosize=True, height=height, template=default_template, margin=dict(l=45, r=45, b=20, t=50, pad=3))
     return fig
 
