@@ -34,7 +34,7 @@ def addLines(fig: go.FigureWidget, **line_styles):
         fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
-def chartFigure(height: int = 700, rows: int = 1, template:str = 'plotly_white', **line_styles) -> go.FigureWidget:
+def chartFigure(height: int = 700, rows: int = 1, template: str = 'plotly_white', **line_styles) -> go.FigureWidget:
     """Create default chart widget with horizontal subplots"""
 
     specs = [[{"secondary_y": True}] for _ in range(rows)]
