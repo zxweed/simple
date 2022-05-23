@@ -92,7 +92,7 @@ def interactFigure(model: callable, line_styles: dict, height: int = 700, rows: 
     spec = getfullargspec(model)
     x = dict(zip_longest(reversed(spec.args), [] if spec.defaults is None else reversed(spec.defaults), fillvalue=1))
     defaults = dict(reversed(x.items()))
-    fig = chartFigure(height=height, rows=rows, template=template, line_styles=line_styles)
+    fig = chartFigure(height=height, rows=rows, template=template, **line_styles)
 
     def update(**arg):
         updateLines(fig, **model(**arg)[1])
