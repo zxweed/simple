@@ -7,6 +7,7 @@ from inspect import getfullargspec
 from itertools import repeat, zip_longest
 from ipywidgets import widgets, interactive, HBox, VBox
 from plotly_resampler import FigureWidgetResampler
+from ipyslickgrid import show_grid
 
 
 default_template = 'plotly_white'
@@ -109,8 +110,29 @@ def interactFigure(model: callable, line_styles: dict, height: int = 700, rows: 
     return VBox([HBox(sliders), fig])
 
 
+def interactTable(model: callable, line_styles: dict, X: pd.DataFrame, height: int = 700, rows: int = 1, template: str = default_template) -> widgets:
+    """Interactive parameter table browser"""
+
+    box = interactFigure(model, line_styles, height=height, rows=rows, template=template)
+
+    def on_changed(event, grid):
+        changed = grid.get_changed_df()
+        k = event['new'][0]
+        selected = changed.iloc[k:k + 1].to_dict('records')[0]
+        param = dict(filter(lambda x: x[0] in X.columns, selected.items()))
+        updateSliders(box.children[0].children, **param)
+        updateLines(box.children[1], **model(**param)[1])
+
+    grid = show_grid(X, grid_options={'editable': False, 'forceFitColumns': True, 'multiSelect': False},
+                     column_options={'defaultSortAsc': False})
+    grid.on('selection_changed', on_changed)
+
+    return VBox([box, grid])
+
+
 def chartParallel(X: pd.DataFrame) -> widgets:
     """Parallel coordinates plot for optimization results"""
     fig = go.FigureWidget(data=go.Parcoords(dimensions=[{'label': c, 'values': X[c]} for c in X.columns]))
     fig.update_layout(autosize=True, height=400, template=default_template, margin=dict(l=45, r=45, b=20, t=50, pad=3))
     return fig
+
