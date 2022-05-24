@@ -2,5 +2,5 @@ jupyter contrib nbextension install --user
 jupyter nbextension enable --py widgetsnbextension
 jupyter nbextension enable --py --sys-prefix ipyslickgrid
 
-pip install lttbc==0.2.0
+pip install plotly_resampler
 
