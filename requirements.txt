@@ -1,5 +1,4 @@
-numpy==1.16
-setuptools
+numpy==1.21.6
 pandas
 numba
 plotly
@@ -10,5 +9,4 @@ pandas_ta
 ipyslickgrid
 jupyter_contrib_nbextensions
 deap
-lttbc==0.2.0
 plotly_resampler
