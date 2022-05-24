@@ -9,5 +9,5 @@ pandas_ta
 ipyslickgrid
 jupyter_contrib_nbextensions
 deap
-lttbc==0.2.0
+lttbc==0.1.9
 plotly_resampler
