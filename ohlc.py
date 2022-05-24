@@ -1,7 +1,15 @@
 import numpy as np
 from numba import njit
 
-TOHLC = np.dtype([('DT', '<M8[us]'), ('Open', float), ('High', float), ('Low', float), ('Close', float), ('Volume', float), ('Buy', int), ('Sell', int)])
+# candle record structure
+TOHLC = np.dtype([('DT', '<M8[us]'),
+                  ('Open', float),
+                  ('High', float),
+                  ('Low', float),
+                  ('Close', float),
+                  ('Volume', float),
+                  ('Buy', int),
+                  ('Sell', int)])
 
 
 @njit
@@ -39,9 +47,8 @@ def resampleVolume(T: np.array, threshold: int, OHLC: np.array) -> int:
 
 
 @njit(nogil=True)
-def midPrice(T: np.array) -> np.array:
+def midPrice(T: np.array, stepPrice = 0.5) -> np.array:
     dest = np.zeros_like(T.PriceA)
-    stepPrice = 0.5
     for t in range(len(T)):
         dest[t] = T.PriceA[t] - stepPrice / 2 if T.VolumeA[t] > 0 else T.PriceA[t] + stepPrice / 2
     return dest
