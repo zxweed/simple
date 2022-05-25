@@ -1,5 +1,7 @@
 numpy==1.21.6
 pandas
+asyncio
+aiohttp
 numba
 plotly
 ipywidgets
