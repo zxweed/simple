@@ -4,6 +4,7 @@ from functools import partial
 from requests import get
 
 api = 'https://api.binance.com/api/v3/klines'
+db = 'quotes.hdf'
 
 
 def _OHLC(tm, ticker, interval):
@@ -20,3 +21,7 @@ def getOHLC(ticker, start_time, end_time, minutes=5):
     TM = pd.date_range(start_time, end_time, freq=f'{500*minutes}min')
     return pd.concat(Pool(64).map(partial(_OHLC, ticker=ticker, interval=f'{minutes}m'), TM)).sort_index()
 
+
+def storeOHLC(ticker, start_time, end_time, minutes=5):
+    OHLC = getOHLC(ticker, start_time, end_time, minutes)
+    OHLC.to_hdf(db, key=ticker, complevel=5)
