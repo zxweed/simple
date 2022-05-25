@@ -7,7 +7,6 @@ plotly
 ipywidgets
 joblib
 tqdm
-pandas_ta
-ipyslickgrid
+ipyslickgrid==0.0.3
 jupyter_contrib_nbextensions
 deap
