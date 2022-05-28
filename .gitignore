@@ -1,0 +1,8 @@
+# Folders
+data/binance_data/*
+
+# IDE
+.idea/
+__pycache__/
+.ipynb_checkpoints/
+venv/
