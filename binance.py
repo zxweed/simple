@@ -22,7 +22,7 @@ def request(url):
                 return r
             time.sleep(0.5)
         except Exception as E:
-            print(r.status_code, url, E)
+            print(url, E)
             time.sleep(np.random.randint(1, 10))
 
 
@@ -45,10 +45,12 @@ def _OHLC(tm, ticker, interval):
 
 
 def getOHLC(ticker, start_time, end_time, minutes=5):
+    print(ticker, end=':')
     TM = pd.date_range(start_time + timedelta(minutes=minutes), end_time, freq=f'{500*minutes}min')
     interval = f'{minutes}m' if minutes < 60 else f'{minutes//60}h' if minutes < 1440 else f'{minutes//1440}d'
     L = Pool(24).map(partial(_OHLC, ticker=ticker, interval=interval), TM)
     if L is not None and len(L) > 0 and L[0] is not None:
+        print(len(L), end=' ')
         return pd.concat(L).sort_index()
 
 
