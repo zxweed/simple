@@ -127,8 +127,11 @@ def download_file_by_url(url: str, save_path: str):
         break
 
 
-def get_all_instrument_names(url: str) -> List[str]:
+def get_all_instrument_names(source_type: Source, tf: Timeframe) -> List[str]:
     """find all exchange's instruments"""
+
+    aggregate_period = 'monthly'
+    url = f"https://{S3_ARCHIVE_URL}/{BINANCE_URL}?delimiter=/&prefix=data/{source_type.value}/{'um/' if source_type.value=='futures' else ''}{aggregate_period}/{tf.value if tf.value in ('trades', 'aggTrades') else 'klines'}/"
 
     new_url = url
     output = []
@@ -223,7 +226,8 @@ if __name__ == '__main__':
     warnings.simplefilter("ignore")
     pd.set_option('display.expand_frame_repr', False)  # print out all columns
 
-    # SPOT examples
+    # EXAMPLES:
+    # SPOT
     df1 = get_ohlc('ANCUSDT', '2022-04-01', '2022-05-01', Timeframe.MINUTE1, Source.SPOT)
     print(df1.head(3))
 
@@ -233,12 +237,11 @@ if __name__ == '__main__':
     df3 = get_ohlc('ANCUSDT', '2022-04-01', '2022-05-01', Timeframe.AGG_TRADES, Source.SPOT)
     print(df3.head(3))
 
-    # FUTURES examples
+    # FUTURES
     df4 = get_ohlc('ANCUSDT', '2022-04-01', '2022-05-01', Timeframe.MINUTE1, Source.FUTURES)
     print(df4.head(3))
 
-    df5 = get_ohlc('ANCUSDT', '2022-04-01', '2022-05-01', Timeframe.TRADES, Source.FUTURES)
-    print(df5.head(3))
-
-    df6 = get_ohlc('ANCUSDT', '2022-04-01', '2022-05-01', Timeframe.AGG_TRADES, Source.FUTURES)
-    print(df6.head(3))
+    # all futures' instruments from exchange
+    symbols = get_all_instrument_names(Source.FUTURES, Timeframe.MINUTE1)
+    for symbol in symbols:
+        get_ohlc(symbol, '2022-04-01', '2022-05-01', Timeframe.MINUTE1, Source.FUTURES)
