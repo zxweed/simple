@@ -1,4 +1,4 @@
-numpy==1.21.6
+numpy
 pandas
 tables
 numba
@@ -10,4 +10,3 @@ ipyslickgrid==0.0.3
 jupyter_contrib_nbextensions
 deap
 requests
-plotly_resampler
