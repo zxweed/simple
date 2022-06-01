@@ -15,14 +15,14 @@ from IPython.display import clear_output, display, Javascript
 class tqdmParallel(Parallel):
     """Show progress bar when parallel processing"""
 
-    def __init__(self, n_jobs=-1, use_tqdm=True, total=None, *args, **kwargs):
-        self._use_tqdm = use_tqdm
+    def __init__(self, n_jobs=-1, progress=True, total=None, *args, **kwargs):
+        self._progress = progress
         self._total = total
         self._lasttime = datetime.now()
         super().__init__(n_jobs=n_jobs, *args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        with tqdm(disable=not self._use_tqdm, total=self._total) as self._pbar:
+        with tqdm(disable=not self._progress, total=self._total) as self._pbar:
             return Parallel.__call__(self, *args, **kwargs)
 
     def print_progress(self):
