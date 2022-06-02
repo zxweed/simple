@@ -11,7 +11,7 @@ from itertools import zip_longest
 import numpy as np
 import pandas as pd
 from itertools import product
-from pretty import tqdmParallel
+from simple.pretty import tqdmParallel
 from joblib import delayed
 
 

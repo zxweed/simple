@@ -1,4 +1,4 @@
-from pretty import tqdmParallel
+from simple.pretty import tqdmParallel
 from typing import Callable, Union, Generator, Tuple
 from joblib import delayed, Parallel
 import numpy as np
