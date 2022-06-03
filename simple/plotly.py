@@ -11,6 +11,7 @@ from ipyslickgrid import show_grid
 
 
 default_template = 'plotly_white'
+default_height = 700
 
 
 def addLines(fig: go.FigureWidget, **line_styles):
@@ -41,7 +42,7 @@ def addLines(fig: go.FigureWidget, **line_styles):
         fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
-def chartFigure(height: int = 700, rows: int = 1, template: str = default_template, **lines) -> go.FigureWidget:
+def chartFigure(height: int = default_height, rows: int = 1, template: str = default_template, **lines) -> go.FigureWidget:
     """Create default chart widget with horizontal subplots"""
 
     specs = [[{"secondary_y": True}] for _ in range(rows)]
@@ -96,7 +97,7 @@ def updateSliders(sliders: widgets, **values: dict):
 
 
 def interactFigure(model: callable, line_styles: dict,
-                   height: int = 700, rows: int = 1, template: str = default_template) -> widgets:
+                   height: int = default_height, rows: int = 1, template: str = default_template) -> widgets:
     """Interactive chart with model's internal data-series and sliders to change parameters"""
 
     spec = getfullargspec(model)
@@ -117,7 +118,7 @@ def interactFigure(model: callable, line_styles: dict,
 
 
 def interactTable(model: callable, line_styles: dict, X: pd.DataFrame,
-                  height: int = 700, rows: int = 1, template: str = default_template) -> widgets:
+                  height: int = default_height, rows: int = 1, template: str = default_template) -> widgets:
     """Interactive parameter table browser"""
 
     box = interactFigure(model, line_styles, height=height, rows=rows, template=template)
