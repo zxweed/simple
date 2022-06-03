@@ -33,7 +33,9 @@ def addLines(fig: go.FigureWidget, **line_styles):
             else:
                 trace_dict[param] = line[param]
 
-        scatter_dict['marker' if line_class == go.scattergl.Marker else 'line'] = line_dict
+        name = 'marker' if line_class == go.scattergl.Marker else 'line'
+        if len(line_dict) > 0:
+            scatter_dict[name] = line_dict
         if 'row' in trace_dict and 'col' not in trace_dict:
             trace_dict['col'] = 1
         fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
@@ -60,8 +62,9 @@ def chartFigure(height: int = 700, rows: int = 1, template: str = default_templa
     if lines is not None:
         addLines(fig, **lines)
 
-    fig.update_xaxes(spikemode='across+marker', spikedash='dot', spikethickness=2, spikesnap='cursor')
-    fig.update_traces(xaxis=f'x{rows}')
+    if rows > 1:
+        fig.update_xaxes(spikemode='across+marker', spikedash='dot', spikethickness=2, spikesnap='cursor')
+        fig.update_traces(xaxis=f'x{rows}')
 
     return fig
 
