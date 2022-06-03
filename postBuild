@@ -4,3 +4,4 @@ jupyter nbextension enable --py --sys-prefix ipyslickgrid
 
 pip install plotly_resampler
 
+echo '.container { width:95% !important; }' > /srv/conda/envs/notebook/lib/python3.9/site-packages/notebook/static/custom/custom.css
