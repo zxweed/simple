@@ -111,7 +111,7 @@ def renko(T: np.array, step: int = 1) -> np.array:
     stepPrice = getStepPrice(T.PriceA)
     MidA = midPrice(T, stepPrice)
     RenkoL = resampleRenko(MidA, step)
-    return np.array(RenkoL).view(np.recarray)
+    return RenkoL#np.array(RenkoL).view(np.recarray)
 
 
 def ohlcVolume(T: np.array, threshold: int) -> np.array:

@@ -1,6 +1,8 @@
 import numpy as np
 from typing import List
 from numba import njit
+from numba.typed import List
+from numba.types import int64, float64, Tuple
 
 
 def npTrades(trades: List) -> np.ndarray:
@@ -27,6 +29,88 @@ def getShort(trades: np.array):
 
 fp32 = np.float32
 default_fee = 0.05
+default_delay = 1000
+
+signal_type = Tuple((int64, int64, float64, float64))
+trade_type = Tuple((int64, int64, float64, float64, int64, int64, float64, float64, int64))
+
+
+@njit(nogil=True)
+def backtestIOC(ts, A, B, signal, threshold, delay=default_delay, maxpos=1) -> list:
+    """Fast&simple vectorized backtester w/ IOC orders modeling"""
+
+    buys = List.empty_list(signal_type)
+    sells = List.empty_list(signal_type)
+    trades = List.empty_list(trade_type)
+
+    pos: int = 0
+
+    for i in range(len(ts) - 1):
+        delta_pos: int = 0
+
+        # Conditions for open position
+        if signal[i] > threshold:
+            delta_pos = min(maxpos - pos, 1)
+        elif signal[i] < -threshold:
+            delta_pos = -min(maxpos + pos, 1)
+
+        # IOC check
+        k = i + 1
+        if delta_pos > 0:
+            while k < len(ts) - 1 and A[i] == A[k] and ts[k] - ts[i] < delay:
+                k += 1
+
+            if A[k] > A[i] and ts[k] - ts[i] < delay:
+                delta_pos = 0
+
+        elif delta_pos < 0:
+            while k < len(ts) - 1 and B[i] == B[k] and ts[k] - ts[i] < delay:
+                k += 1
+
+            if B[k] < B[i] and ts[k] - ts[i] < delay:
+                delta_pos = 0
+
+        # There can be more than one position (until maxpos reached)
+        for _ in range(abs(delta_pos)):
+            midprice = (A[k] + B[k]) / 2
+            if delta_pos > 0:
+                buys.append((k, ts[k], A[k], midprice))
+            elif delta_pos < 0:
+                sells.append((k, ts[k], B[k], midprice))
+
+            if len(sells) > 0 and len(buys) > 0:
+                buy = buys.pop(0)
+                sell = sells.pop(0)
+                if delta_pos < 0:
+                    trades.append((*buy, *sell, -delta_pos))
+                else:
+                    trades.append((*sell, *buy, -delta_pos))
+
+        pos += delta_pos
+
+    return trades
+
+
+def usInt(ts) -> np.ndarray:
+    """Convert time series to microseconds"""
+
+    if ts.dtype == np.dtype('<M8[us]'):
+        return ts.astype(np.int64)
+    elif ts.dtype == np.dtype('<M8[ns]'):
+        return ts.astype(np.int64)//1000
+    else:
+        return ts
+
+
+def npBacktestIOC(ts, A, B, signal, threshold, delay=default_delay, maxpos=1) -> np.ndarray:
+    """Converts trades from the IOC-backtester to structured array"""
+
+    trades = backtestIOC(usInt(ts), A, B, signal, threshold, delay=delay, maxpos=maxpos)
+    TPairTrade = [('X0', np.int64), ('T0', np.int64), ('Price0', float), ('MidPrice0', float),
+                  ('X1', np.int64), ('T1', np.int64), ('Price1', float), ('MidPrice1', float),
+                  ('Size', float)]
+
+    return np.array(trades, dtype=TPairTrade).view(np.recarray)
 
 
 @njit(nogil=True)
