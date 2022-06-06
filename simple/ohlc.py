@@ -46,9 +46,16 @@ def resampleVolume(T: np.array, threshold: int, OHLC: np.array) -> int:
     return c
 
 
+def getStepPrice(PriceA: np.array) -> float:
+    X = np.around(sorted(np.unique(np.abs(np.diff(PriceA)))), 8)
+    stepPrice = X[X > 0][0]
+    return stepPrice
+
+
 @njit(nogil=True)
-def midPrice(T: np.array, stepPrice = 0.5) -> np.array:
+def midPrice(T: np.array, stepPrice: float) -> np.array:
     dest = np.zeros_like(T.PriceA)
+
     for t in range(len(T)):
         dest[t] = T.PriceA[t] - stepPrice / 2 if T.VolumeA[t] > 0 else T.PriceA[t] + stepPrice / 2
     return dest
@@ -81,7 +88,10 @@ def resampleRenko(P: np.array, step: int = 1) -> int:
 
         price = P[t] if t < len(P) else P[t - 1]
         delta = price - P[k]
-        result.append((k, t-1, *((low, high) if delta > 0 else (high, low))))
+        if delta > 0:
+            result.append((k, t-1, low, high))  # TODO: indexes must be stored as int32
+        else:
+            result.append((k, t-1, high, low))
         low = np.trunc(price / step) * step
         high = low + step
         k = t
@@ -91,15 +101,17 @@ def resampleRenko(P: np.array, step: int = 1) -> int:
 
 def debounce(T: np.array) -> np.array:
     """Drops bounce trades (that not change best bidask prices)"""
-    Result = midPrice(T)
-    c = resampleDebounce(Result)
-    return np.resize(Result, c).view(np.recarray)
+    stepPrice = getStepPrice(T.PriceA)
+    MidA = midPrice(T, stepPrice)
+    c = resampleDebounce(MidA)
+    return np.resize(MidA, c).view(np.recarray)
 
 
 def renko(T: np.array, step: int = 1) -> np.array:
-    MidA = midPrice(T)
-    RenkoLst = resampleRenko(MidA, step)
-    return np.array(RenkoLst).view(np.recarray)
+    stepPrice = getStepPrice(T.PriceA)
+    MidA = midPrice(T, stepPrice)
+    RenkoL = resampleRenko(MidA, step)
+    return np.array(RenkoL).view(np.recarray)
 
 
 def ohlcVolume(T: np.array, threshold: int) -> np.array:
