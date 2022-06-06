@@ -12,7 +12,7 @@ TOHLC = np.dtype([('DT', '<M8[us]'),
                   ('Sell', int)])
 
 
-@njit
+@njit(nogil=True)
 def resampleVolume(T: np.array, threshold: int, OHLC: np.array) -> int:
     t = c = 0
     volume = 0
@@ -43,7 +43,7 @@ def resampleVolume(T: np.array, threshold: int, OHLC: np.array) -> int:
         c += 1
         volume = 0
 
-    return c-1
+    return c
 
 
 @njit(nogil=True)
@@ -58,20 +58,48 @@ def midPrice(T: np.array, stepPrice = 0.5) -> np.array:
 def resampleDebounce(dest: np.array) -> int:
     t = c = 0
     while t < len(dest):
-        while dest[t] == dest[c]:
+        while t < len(dest) and dest[t] == dest[c]:
             t += 1
-            if t == len(dest):
-                return c
-        c += 1
-        dest[c] = dest[t]
 
-    return c
+        price = dest[t] if t < len(dest) else dest[t-1]
+        c += 1
+        dest[c] = price
+
+    return c + 1  # c is the last index of debounced value, so return length
+
+
+@njit(nogil=True)
+def resampleRenko(P: np.array, step: int = 1) -> int:
+    k = t = 0
+    price = P[k]
+    low = np.trunc(price / step) * step
+    high = low + step
+    result = []
+    while t < len(P):
+        while t < len(P) and P[t] >= low and P[t] < high:
+            t += 1
+
+        price = P[t] if t < len(P) else P[t - 1]
+        delta = price - P[k]
+        result.append((k, t-1, *((low, high) if delta > 0 else (high, low))))
+        low = np.trunc(price / step) * step
+        high = low + step
+        k = t
+
+    return result
 
 
 def debounce(T: np.array) -> np.array:
+    """Drops bounce trades (that not change best bidask prices)"""
     Result = midPrice(T)
     c = resampleDebounce(Result)
     return np.resize(Result, c).view(np.recarray)
+
+
+def renko(T: np.array, step: int = 1) -> np.array:
+    MidA = midPrice(T)
+    RenkoLst = resampleRenko(MidA, step)
+    return np.array(RenkoLst).view(np.recarray)
 
 
 def ohlcVolume(T: np.array, threshold: int) -> np.array:
