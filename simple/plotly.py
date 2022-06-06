@@ -9,6 +9,9 @@ from ipywidgets import widgets, interactive, HBox, VBox
 from plotly_resampler import FigureWidgetResampler
 from ipyslickgrid import show_grid
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 default_template = 'plotly_white'
 default_height = 700
