@@ -7,7 +7,8 @@ from requests import get
 from datetime import datetime, timedelta
 import time
 
-api = 'https://api.binance.com/api/v3/klines?&symbol={ticker}&interval={interval}&startTime={startTime}'
+api_endpoint = 'https://api.binance.com/api/v3'
+api = api_endpoint + '/klines?&symbol={ticker}&interval={interval}&startTime={startTime}'
 hist_api = 'https://data.binance.vision/data/futures/um/monthly/klines/{ticker}/{frame}/{ticker}-{frame}-{month}.zip'
 
 
@@ -43,10 +44,10 @@ def request(url):
 
 def getSymbols():
     symbols = []
-    js = request(f'{api}/exchangeInfo').json()
-    for symbol in js['symbols']:
-        symbols.append(symbol['baseAsset'] + symbol['quoteAsset'])
-    return sorted(symbols)
+    url = f'{api_endpoint}/exchangeInfo'
+    print(url)
+    js = request(url).json()
+    return sorted([symbol['baseAsset'] + symbol['quoteAsset'] for symbol in js['symbols']])
 
 
 def _OHLC(tm, ticker, interval):
