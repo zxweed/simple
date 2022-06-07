@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 from tqdm.auto import tqdm
-import seaborn as sns
 import pandas as pd
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter
 from joblib import Parallel, delayed
 import inspect
 from datetime import datetime, timedelta
@@ -69,28 +65,9 @@ def pxmap(func: callable, param, **kwargs):
     return pd.DataFrame([(*tpl(x[0]), *tpl(x[1])) for x in zip(param_list, X)], columns=param_names)
 
 
-def FeatureImportance(model, names=None, top=20, palette='Blues_r'):
-    """Feature importance chart"""
-    names = model.feature_name() if names is None else names
-
-    f = pd.Series(model.feature_importance('gain'), index=names).sort_values(ascending=False)[:top]
-    sns.barplot(y=f.index, x=f, palette=palette, ax=plt.subplot(121)).set(ylabel='Feature by GAIN');
-
-    f = pd.Series(model.feature_importance('split'), index=names).sort_values(ascending=False)[:top]
-    sns.barplot(y=f.index, x=f, palette=palette, ax=plt.subplot(122)).set(ylabel='Feature by SPLIT');
-
-
 def Corr(X, Y):
     """Correlation coefficient"""
     return np.corrcoef(np.nan_to_num(X), np.nan_to_num(Y))[0, 1] * 100
-
-
-def Linear(X, Y, ax=None):
-    """Linear regression chart"""
-    ax = sns.regplot(x=X, y=Y, ax=ax, fit_reg=True, scatter_kws={'color': 'green', 'alpha': min(100 / len(X), 1)})
-    # ax.axvline(0, color='gray', linestyle='--')
-    # ax.axhline(0, color='gray', linestyle='--')
-    return Corr(X, Y)
 
 
 def background(self, scale='Linear', cmap='RdYlGn', **css):
@@ -136,68 +113,3 @@ def pp(X: pd.DataFrame):
     """Pretty print pandas dataframe"""
     return X.style.apply(background, axis=None)
 
-
-thousands_fmt = FuncFormatter(lambda x, pos: "{:.0f}k".format(abs(x) / 1000))
-millions_fmt = FuncFormatter(lambda x, pos: "{:.0f}m".format(abs(x) / 1e6))
-
-
-def favicon(url):
-    """Change favicon for Jupyter page"""
-    display(Javascript('''
-        var link = document.createElement('link'), oldLink = document.getElementById('dynamic-favicon');
-        link.id = 'dynamic-favicon';
-        link.rel = 'shortcut icon';
-        link.href = "%s";
-        if (oldLink) {
-          document.head.removeChild(oldLink);
-        }
-        document.head.appendChild(link);
-    ''' % url
-                       ))
-
-
-_RMSE = []
-_LastTime = datetime.now()
-
-
-def chart_callback(env):
-    """Callback function for LightGBM chart"""
-    global _LastTime, _RMSE
-    c = env.evaluation_result_list
-    T, V = c[0], c[1]
-    _RMSE.append([T[2], V[2]])
-
-    if datetime.now() > _LastTime + timedelta(seconds=2):
-        clear_output(wait=True)
-        plt.plot(_RMSE)
-        plt.legend([
-            '{0} {1} = {2:.5f}'.format(T[0], T[1], T[2]),
-            '{0} {1} = {2:.5f}'.format(V[0], V[1], V[2]),
-        ], loc='upper right', shadow=True)
-        plt.title('Best {0} {1} = {2:.5f}'.format(V[0], V[1], np.array(_RMSE)[:, 1].min()))
-        plt.show(block=False)
-        _LastTime = datetime.now()
-
-
-chart_callback.before_iteration = False
-chart_callback.order = 0
-
-# global visualization options
-plt.rcParams['figure.dpi'] = 80
-plt.rcParams['figure.subplot.left'] = 0.04
-plt.rcParams['figure.subplot.right'] = 0.95
-plt.rcParams['figure.subplot.top'] = 0.96
-plt.rcParams['figure.subplot.bottom'] = 0.05
-plt.rcParams['figure.figsize'] = (16, 5)
-
-plt.rcParams['axes.grid'] = True
-plt.rcParams['grid.linestyle'] = '--'
-plt.rcParams['grid.alpha'] = 0.5
-
-plt.rcParams['axes.spines.top'] = False
-plt.rcParams['grid.color'] = 'lightgray'
-
-pd.set_option('display.max_columns', 2000)
-#pd.set_option('precision', 2)
-
-np.set_printoptions(precision=4, linewidth=160, edgeitems=5)
