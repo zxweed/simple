@@ -1,17 +1,32 @@
 import pandas as pd
 import numpy as np
-from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 from functools import partial
 from requests import get
 from datetime import datetime, timedelta
 import time
-import warnings
-from tables import NaturalNameWarning
 
-warnings.filterwarnings('ignore', category=NaturalNameWarning)
+api = 'https://api.binance.com/api/v3/klines?&symbol={ticker}&interval={interval}&startTime={startTime}'
+hist_api = 'https://data.binance.vision/data/futures/um/monthly/klines/{ticker}/{frame}/{ticker}-{frame}-{month}.zip'
 
-api = 'https://api.binance.com/api/v3'
-db = 'quotes.hdf'
+
+def _HistOHLC(month, ticker, frame, close_only=False):
+    x = pd.read_csv(hist_api.format(month=month, ticker=ticker, frame=frame), header=None,
+                    names=['DT', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT', 'BaseVolume',
+                           'TradeCount', 'TakerBase', 'TakerQuote', 'Ignore'])
+
+    x.DT = x.DT.astype('M8[ms]')
+    x.CloseDT = x.CloseDT.astype('M8[ms]')
+    x.set_index('DT', inplace=True)
+    x.name = ticker
+    return x[['Close']].rename(columns={'Close': ticker}) if close_only else x
+
+
+def getHistMonth(start_date, end_date, ticker, frame, close_only=False):
+    M = [s.strftime('%Y-%m') for s in pd.date_range(start_date, end_date, freq='MS')]
+    X = pd.concat(ThreadPool(16).map(partial(_HistOHLC, ticker=ticker, frame=frame, close_only=close_only), M))
+    return X
 
 
 def request(url):
@@ -35,7 +50,7 @@ def getSymbols():
 
 
 def _OHLC(tm, ticker, interval):
-    url = f'{api}/klines?&symbol={ticker}&interval={interval}&startTime={int(tm.timestamp() * 1000)}'
+    url = api.format(ticker=ticker, interval=interval, startTime=int(tm.timestamp() * 1000))
     df = pd.DataFrame(request(url).json())
     if len(df) > 0:
         df = df.set_index(df[0].astype('M8[ms]'))[[1, 2, 3, 4, 5]].apply(pd.to_numeric)
@@ -44,33 +59,28 @@ def _OHLC(tm, ticker, interval):
         return df
 
 
-def getOHLC(ticker, start_time, end_time, minutes=5):
-    print(ticker, end=':')
-    TM = pd.date_range(start_time + timedelta(minutes=minutes), end_time, freq=f'{500*minutes}min')
-    interval = f'{minutes}m' if minutes < 60 else f'{minutes//60}h' if minutes < 1440 else f'{minutes//1440}d'
-    L = Pool(24).map(partial(_OHLC, ticker=ticker, interval=interval), TM)
-    if L is not None and len(L) > 0 and L[0] is not None:
-        print(len(L), end=' ')
-        return pd.concat(L).sort_index()
+def getOHLC(tm, ticker):
+    url = api.format(ticker=ticker, interval=interval, startTime=int(tm.timestamp() * 1000))
+    df = pd.DataFrame(requests.get(url).json())
+    if len(df) > 0:
+        df = df.set_index(df[0].astype('M8[ms]'))[[1, 2, 3, 4, 5]].apply(pd.to_numeric)
+        df.index.name = 'DateTime'
+        df.columns = pd.MultiIndex.from_product(([ticker], ['Open', 'High', 'Low', 'Close', 'Volume']))
+        return df
 
 
-def storeOHLC(ticker, start_time, end_time, minutes=5):
-    OHLC = getOHLC(ticker, start_time, end_time, minutes)
-    OHLC.to_hdf(db, key=ticker, complevel=5)
+def getClose(tm, ticker):
+    url = api.format(ticker=ticker, interval=interval, startTime=int(tm.timestamp() * 1000))
+    df = pd.DataFrame(requests.get(url).json())
+    if len(df) > 0:
+        df = df.set_index(df[0].astype('M8[ms]'))[[4]].apply(pd.to_numeric)
+        df.index.name = 'DateTime'
+        df.columns = [ticker]
+        return df
 
 
-def updateOHLC(ticker, minutes=5):
-    try:
-        OHLC = pd.read_hdf(db, key=ticker)
-    except:
-        OHLC = pd.DataFrame()
-
-    if len(OHLC) > 0:
-        tm = OHLC.index.max()
-    else:
-        tm = pd.to_datetime('2022-01-01')
-
-    P = getOHLC(ticker, tm, datetime.now(), minutes)
-    if P is not None and len(P) > 0:
-        OHLC = pd.concat((OHLC, P))
-        OHLC.to_hdf(db, key=ticker, complevel=5)
+def getHist(startDate, endDate, ticker):
+    TM = pd.date_range(startDate, endDate, freq='2500min')
+    
+    with closing(ThreadPool(16)) as P:
+        return pd.concat(P.map(partial(getClose, ticker=ticker), TM))
