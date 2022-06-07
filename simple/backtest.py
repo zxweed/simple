@@ -60,15 +60,15 @@ def backtestIOC(ts, A, B, signal, threshold, delay=default_delay, maxpos=1) -> l
             while k < len(ts) - 1 and A[i] == A[k] and ts[k] - ts[i] < delay:
                 k += 1
 
-            if A[k] > A[i] and ts[k] - ts[i] < delay:
-                delta_pos = 0
+            # if A[k] > A[i] and ts[k] - ts[i] < delay:
+            #     delta_pos = 0
 
         elif delta_pos < 0:
             while k < len(ts) - 1 and B[i] == B[k] and ts[k] - ts[i] < delay:
                 k += 1
 
-            if B[k] < B[i] and ts[k] - ts[i] < delay:
-                delta_pos = 0
+            # if B[k] < B[i] and ts[k] - ts[i] < delay:
+            #     delta_pos = 0
 
         # There can be more than one position (until maxpos reached)
         for _ in range(abs(delta_pos)):
@@ -106,8 +106,8 @@ def npBacktestIOC(ts, A, B, signal, threshold, delay=default_delay, maxpos=1) ->
     """Converts trades from the IOC-backtester to structured array"""
 
     trades = backtestIOC(usInt(ts), A, B, signal, threshold, delay=delay, maxpos=maxpos)
-    TPairTrade = [('X0', np.int64), ('T0', np.int64), ('Price0', float), ('MidPrice0', float),
-                  ('X1', np.int64), ('T1', np.int64), ('Price1', float), ('MidPrice1', float),
+    TPairTrade = [('X0', np.int64), ('T0', 'M8[us]'), ('Price0', float), ('MidPrice0', float),
+                  ('X1', np.int64), ('T1', 'M8[us]'), ('Price1', float), ('MidPrice1', float),
                   ('Size', float)]
 
     return np.array(trades, dtype=TPairTrade).view(np.recarray)
