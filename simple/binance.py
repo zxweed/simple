@@ -7,21 +7,25 @@ from requests import get
 from datetime import datetime, timedelta
 import time
 
-api = 'https://api.binance.com/api/v3/klines?&symbol={ticker}&interval={interval}&startTime={startTime}'
+api_endpoint = 'https://api.binance.com/api/v3'
+api = api_endpoint + '/klines?&symbol={ticker}&interval={interval}&startTime={startTime}'
 hist_api = 'https://data.binance.vision/data/futures/um/monthly/klines/{ticker}/{frame}/{ticker}-{frame}-{month}.zip'
 
 
 def _HistOHLC(month, ticker, frame, close_only=False):
-    x = pd.read_csv(hist_api.format(month=month, ticker=ticker, frame=frame), header=None,
-                    names=['DT', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT', 'BaseVolume',
-                           'TradeCount', 'TakerBase', 'TakerQuote', 'Ignore'])
+    try:
+        x = pd.read_csv(hist_api.format(month=month, ticker=ticker, frame=frame), header=None,
+                        names=['DT', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT', 'BaseVolume',
+                               'TradeCount', 'TakerBase', 'TakerQuote', 'Ignore'])
 
-    x.DT = x.DT.astype('M8[ms]')
-    x.CloseDT = x.CloseDT.astype('M8[ms]')
-    x.set_index('DT', inplace=True)
-    x.name = ticker
-    return x[['Close']].rename(columns={'Close': ticker}) if close_only else x
-
+        x.DT = x.DT.astype('M8[ms]')
+        x.CloseDT = x.CloseDT.astype('M8[ms]')
+        x.set_index('DT', inplace=True)
+        x.name = ticker
+        return x[['Close']].rename(columns={'Close': ticker}) if close_only else x
+    except Exception as E:
+        print(ticker, E)
+    
 
 def getHistMonth(start_date, end_date, ticker, frame, close_only=False):
     M = [s.strftime('%Y-%m') for s in pd.date_range(start_date, end_date, freq='MS')]
@@ -42,11 +46,9 @@ def request(url):
 
 
 def getSymbols():
-    symbols = []
-    js = request(f'{api}/exchangeInfo').json()
-    for symbol in js['symbols']:
-        symbols.append(symbol['baseAsset'] + symbol['quoteAsset'])
-    return sorted(symbols)
+    url = f'{api_endpoint}/exchangeInfo'
+    js = request(url).json()
+    return sorted([symbol['symbol'] for symbol in js['symbols'] if symbol['status'] == 'TRADING'])
 
 
 def _OHLC(tm, ticker, interval):
