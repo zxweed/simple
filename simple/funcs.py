@@ -33,13 +33,14 @@ def Ratio(vA, vB, L) -> np.ndarray:
 
 
 @njit(nogil=True)
-def vPIN(T, period) -> np.ndarray:
-    """Some version of Volume-Synchronized Probability of Informed Trading - source paper by Easley, Lopez de Prado, O’Hara"""
+def vPIN(T: np.array, period: int = 1000) -> np.ndarray:
+    """Some version of Volume-Synchronized Probability of Informed Trading - paper by Easley, Lopez de Prado, O’Hara"""
     A = 0
     B = 0
-    VPIN = np.zeros(len(T), dtype=np.float32)
+    resultA = np.zeros(len(T), dtype=np.float32)
+    resultA[:period] = np.nan
 
-    # header
+    # during init stage we can't calculate anything, but cumulate the values
     for i in range(period):
         if T.VolumeA[i] < 0:
             A += -T.VolumeA[i]
@@ -58,18 +59,20 @@ def vPIN(T, period) -> np.ndarray:
         else:
             B -= T.VolumeA[k]
 
-        VPIN[i] = (B - A) / (B + A) * 100
+        resultA[i] = (B - A) / (B + A) * 100
 
-    return VPIN
+    return resultA
 
 
 @njit(nogil=True)
-def cPIN(T, period) -> np.ndarray:
+def cPIN(T: np.array, period: int = 1000) -> np.ndarray:
+    """Tick-syncronized imbalance ratio"""
     A = 0
     B = 0
-    CPIN = np.zeros(len(T), dtype=np.float32)
+    resultA = np.zeros(len(T), dtype=np.float32)
 
-    # header
+    # during init stage we can't calculate anything, but cumulate the values
+    resultA[:period] = np.nan
     for i in range(period):
         if T.VolumeA[i] < 0:
             A += 1
@@ -88,13 +91,30 @@ def cPIN(T, period) -> np.ndarray:
         else:
             B -= 1
 
-        CPIN[i] = (B - A) / (B + A) * 100
+        resultA[i] = (B - A) / (B + A) * 100
 
-    return CPIN
+    return resultA
+
+
+@njit(nogil=True)
+def tickSpeed(T: np.array, period: int = 1000) -> np.ndarray:
+    """Tick speed indicator (change of price in dollars per second)"""
+    resultA = np.zeros(len(T), dtype=np.float32)
+    resultA[:period] = np.nan
+
+    for i in range(period, len(T), 1):
+        k = i - period
+        t0 = T.DateTimeA[k]
+        t1 = T.DateTimeA[i]
+        delta = np.int64(t1 - t0)
+        resultA[i] = (T.PriceA[i] - T.PriceA[k]) * 1e6 / delta if delta > 0 else 0
+
+    return resultA
 
 
 @njit(nogil=True)
 def vwap(priceA: np.array, volumeA: np.array, period: int, destA: np.array = None) -> np.ndarray:
+    """Volume Weighted Average Price"""
     turnover = 0.
     size = 0.
     sizeA = np.abs(volumeA)
