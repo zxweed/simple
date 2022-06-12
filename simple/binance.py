@@ -1,20 +1,23 @@
 import pandas as pd
 import numpy as np
-from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 from functools import partial
 from requests import get
-from datetime import datetime, timedelta
 import time
+from contextlib import closing
 
 api_endpoint = 'https://api.binance.com/api/v3'
 api = api_endpoint + '/klines?&symbol={ticker}&interval={interval}&startTime={startTime}'
-hist_api = 'https://data.binance.vision/data/futures/um/monthly/klines/{ticker}/{frame}/{ticker}-{frame}-{month}.zip'
+
+hist_endpoint = 'https://data.binance.vision/data'
+hist_fut_api = hist_endpoint + '/futures/um/monthly/klines/{ticker}/{frame}/{ticker}-{frame}-{month}.zip'
+hist_spot_api = hist_endpoint + '/spot/monthly/klines/{ticker}/{frame}/{ticker}-{frame}-{month}.zip'
 
 
 def _HistOHLC(month, ticker, frame, close_only=False):
     try:
-        x = pd.read_csv(hist_api.format(month=month, ticker=ticker, frame=frame), header=None,
+        url = hist_spot_api.format(month=month, ticker=ticker, frame=frame)
+        x = pd.read_csv(url, header=None,
                         names=['DT', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT', 'BaseVolume',
                                'TradeCount', 'TakerBase', 'TakerQuote', 'Ignore'])
 
@@ -24,8 +27,8 @@ def _HistOHLC(month, ticker, frame, close_only=False):
         x.name = ticker
         return x[['Close']].rename(columns={'Close': ticker}) if close_only else x
     except Exception as E:
-        print(ticker, E)
-    
+        print(ticker, url, E)
+
 
 def getHistMonth(start_date, end_date, ticker, frame, close_only=False):
     M = [s.strftime('%Y-%m') for s in pd.date_range(start_date, end_date, freq='MS')]
@@ -61,9 +64,9 @@ def _OHLC(tm, ticker, interval):
         return df
 
 
-def getOHLC(tm, ticker):
+def getOHLC(tm, ticker, interval, startTime):
     url = api.format(ticker=ticker, interval=interval, startTime=int(tm.timestamp() * 1000))
-    df = pd.DataFrame(requests.get(url).json())
+    df = pd.DataFrame(get(url).json())
     if len(df) > 0:
         df = df.set_index(df[0].astype('M8[ms]'))[[1, 2, 3, 4, 5]].apply(pd.to_numeric)
         df.index.name = 'DateTime'
@@ -71,9 +74,9 @@ def getOHLC(tm, ticker):
         return df
 
 
-def getClose(tm, ticker):
+def getClose(tm, ticker, interval, startTime):
     url = api.format(ticker=ticker, interval=interval, startTime=int(tm.timestamp() * 1000))
-    df = pd.DataFrame(requests.get(url).json())
+    df = pd.DataFrame(get(url).json())
     if len(df) > 0:
         df = df.set_index(df[0].astype('M8[ms]'))[[4]].apply(pd.to_numeric)
         df.index.name = 'DateTime'
@@ -83,6 +86,6 @@ def getClose(tm, ticker):
 
 def getHist(startDate, endDate, ticker):
     TM = pd.date_range(startDate, endDate, freq='2500min')
-    
+
     with closing(ThreadPool(16)) as P:
         return pd.concat(P.map(partial(getClose, ticker=ticker), TM))
