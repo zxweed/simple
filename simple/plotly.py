@@ -101,7 +101,6 @@ def updateLines(fig: go.FigureWidget, **line_data):
                 fig.layout[param_name] = layout[param_name]
 
 
-
 def updateSliders(sliders: widgets, **values: dict):
     """Update slider values"""
 
