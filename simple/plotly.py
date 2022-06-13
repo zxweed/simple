@@ -25,24 +25,28 @@ def addLines(fig: go.FigureWidget, **line_styles):
         if type(line) != dict:
             line = {'hf_y': line}  # if there is only one value specified - interpret as Y series
 
-        line_class = go.scattergl.Marker if line.get('mode') == 'markers' else go.scattergl.Line
-        trace_dict = {}  # parameters not belong to the Line will be moved to upper-levels
-        scatter_dict = {}
-        line_dict = {}
-        for param in line:
-            if param in getfullargspec(line_class).args:
-                line_dict[param] = line[param]
-            elif param in getfullargspec(go.Scattergl).args:
-                scatter_dict[param] = line[param]
-            else:
-                trace_dict[param] = line[param]
+        if line_name == 'layout':
+            for param_name in line:
+                fig.layout[param_name] = line[param_name]
+        else:
+            line_class = go.scattergl.Marker if line.get('mode') == 'markers' else go.scattergl.Line
+            trace_dict = {}  # parameters not belong to the Line will be moved to upper-levels
+            scatter_dict = {}
+            line_dict = {}
+            for param in line:
+                if param in getfullargspec(line_class).args:
+                    line_dict[param] = line[param]
+                elif param in getfullargspec(go.Scattergl).args:
+                    scatter_dict[param] = line[param]
+                else:
+                    trace_dict[param] = line[param]
 
-        name = 'marker' if line_class == go.scattergl.Marker else 'line'
-        if len(line_dict) > 0:
-            scatter_dict[name] = line_dict
-        if 'row' in trace_dict and 'col' not in trace_dict:
-            trace_dict['col'] = 1
-        fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
+            name = 'marker' if line_class == go.scattergl.Marker else 'line'
+            if len(line_dict) > 0:
+                scatter_dict[name] = line_dict
+            if 'row' in trace_dict and 'col' not in trace_dict:
+                trace_dict['col'] = 1
+            fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
 def chartFigure(height: int = default_height, rows: int = 1, template: str = default_template, **lines) -> go.FigureWidget:
@@ -90,6 +94,12 @@ def updateLines(fig: go.FigureWidget, **line_data):
                 fig.hf_data[k]['y'] = line
 
         fig.reload_data()
+
+        layout = line_data.get('layout')
+        if layout is not None:
+            for param_name in layout:
+                fig.layout[param_name] = layout[param_name]
+
 
 
 def updateSliders(sliders: widgets, **values: dict):
