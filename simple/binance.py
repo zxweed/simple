@@ -14,9 +14,13 @@ hist_fut_api = hist_endpoint + '/futures/um/monthly/klines/{ticker}/{frame}/{tic
 hist_spot_api = hist_endpoint + '/spot/monthly/klines/{ticker}/{frame}/{ticker}-{frame}-{month}.zip'
 
 
-def _HistOHLC(month, ticker, frame, close_only=False):
+def _HistOHLC(month, ticker, frame, close_only=False, spot=False):
     try:
-        url = hist_spot_api.format(month=month, ticker=ticker, frame=frame)
+        if spot:
+            url = hist_spot_api.format(month=month, ticker=ticker, frame=frame)
+        else:
+            url = hist_fut_api.format(month=month, ticker=ticker, frame=frame)
+
         x = pd.read_csv(url, header=None,
                         names=['DT', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT', 'BaseVolume',
                                'TradeCount', 'TakerBase', 'TakerQuote', 'Ignore'])
@@ -30,9 +34,9 @@ def _HistOHLC(month, ticker, frame, close_only=False):
         print(ticker, url, E)
 
 
-def getHistMonth(start_date, end_date, ticker, frame, close_only=False):
+def getHistMonth(start_date, end_date, ticker, frame, close_only=False, spot=False):
     M = [s.strftime('%Y-%m') for s in pd.date_range(start_date, end_date, freq='MS')]
-    X = pd.concat(ThreadPool(16).map(partial(_HistOHLC, ticker=ticker, frame=frame, close_only=close_only), M))
+    X = pd.concat(ThreadPool(16).map(partial(_HistOHLC, ticker=ticker, frame=frame, close_only=close_only, spot=spot), M))
     return X
 
 
