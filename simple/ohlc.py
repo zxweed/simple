@@ -4,10 +4,11 @@ from numpy.typing import NDArray
 
 
 TTrade = np.dtype([
-    ('DT', '<M8[us]'),
-    ('PriceA', '<f8'),
-    ('PriceB', '<f8'),
-    ('Volume', '<f8')])
+    ('DateTimeA', 'M8[us]'),
+    ('LocalTimeA', 'M8[us]'),
+    ('PriceA', float),
+    ('VolumeA', float),
+    ('OpenIntA', float)])
 
 # candle record structure
 TOHLC = np.dtype([
