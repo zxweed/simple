@@ -1,6 +1,7 @@
 import numpy as np
 from numba import njit
-from nptyping import NDArray
+from numpy.typing import NDArray
+
 
 TTrade = np.dtype([
     ('DT', '<M8[ns]'),
@@ -69,14 +70,14 @@ def resampleVolume(T: NDArray[TTrade], threshold: int, OHLC: NDArray[TOHLC]) -> 
     return c
 
 
-def getStepPrice(PriceA: np.array) -> float:
+def getStepPrice(PriceA: NDArray[float]) -> float:
     X = np.around(sorted(np.unique(np.abs(np.diff(PriceA)))), 8)
     stepPrice = X[X > 0][0]
     return stepPrice
 
 
 @njit(nogil=True)
-def midPrice(T: np.array, stepPrice: float) -> np.array:
+def midPrice(T: NDArray[TTrade], stepPrice: float) -> NDArray[float]:
     dest = np.zeros_like(T.PriceA)
 
     for t in range(len(T)):
@@ -84,28 +85,39 @@ def midPrice(T: np.array, stepPrice: float) -> np.array:
     return dest
 
 
-@njit(nogil=True)
+#@njit(nogil=True)
 def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDebounce]) -> int:
     t = c = 0
+    DebA.Price[c] = MidA[t]
+    DebA.DT[c] = T.DateTimeA[t]
+
     while t < len(MidA):
         while t < len(MidA) and MidA[t] == MidA[c]:
             t += 1
             DebA.Count[c] += 1
             DebA.Size[c] += np.abs(T.VolumeA[t])
+            if T.VolumeA[t] > 0:
+                DebA.BuyCount[c] += 1
+                DebA.BuySize[c] += T.VolumeA[t]
+            else:
+                DebA.SellCount[c] += 1
+                DebA.SellSize[c] += T.VolumeA[t]
 
         price = MidA[t] if t < len(MidA) else MidA[t - 1]
         c += 1
         DebA.Price[c] = price
+        DebA.DT[c] = T.DateTimeA[t]
+        DebA.Duration[c] = T.DateTimeA[t] - T.DateTimeA[k]
 
     return c + 1  # c is the last index of debounced value, so return length
 
 
-def debounce(T: np.array[TTrade]) -> np.array[TDebounce]:
+def debounce(T: NDArray[TTrade]) -> NDArray[TDebounce]:
     """Drops bounce trades (that not change best bidask prices)"""
 
     stepPrice = getStepPrice(T.PriceA)
     MidA = midPrice(T, stepPrice)
-    DebA = np.zeros(len(MidA), dtype=TDebounce)
+    DebA = np.zeros(len(MidA), dtype=TDebounce).view(np.recarray)
     c = resampleDebounce(MidA, T, DebA)
     return np.resize(DebA, c).view(np.recarray)
 
@@ -134,28 +146,28 @@ def resampleRenko(P: np.array, step: int = 1) -> int:
     return result
 
 
-def renko(T: np.array, step: int = 1) -> np.array:
+def renko(T: NDArray[TTrade], step: int = 1) -> np.array:
     stepPrice = getStepPrice(T.PriceA)
     MidA = midPrice(T, stepPrice)
     RenkoL = resampleRenko(MidA, step)
     return RenkoL
 
 
-def ohlcVolume(T: np.array, threshold: int) -> np.array:
+def ohlcVolume(T: NDArray[TTrade], threshold: int) -> np.array:
     OHLC = np.zeros(len(T), dtype=TOHLC)
     c = resampleVolume(T, threshold, OHLC)
     OHLC.resize(c, refcheck=False)
     return OHLC.view(np.recarray)
 
 
-def tickDebounce(T: np.array) -> np.array:
+def tickDebounce(T: NDArray[TTrade]) -> np.array:
     Result = np.zeros(len(T), dtype=float)
     c = resampleDebounce(T, Result)
     Result.resize(c, refcheck=False)
     return Result.view(np.recarray)
 
 
-def tickVolume(T: np.array, threshold: int) -> np.array:
+def tickVolume(T: NDArray[TTrade], threshold: int) -> np.array:
     OHLC = np.zeros(len(T), dtype=TOHLC)
     c = resampleVolume(T, threshold, OHLC)
     OHLC.resize(c, refcheck=False)
