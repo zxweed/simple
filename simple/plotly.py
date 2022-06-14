@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 import plotly.graph_objs as go
+from plotly.graph_objs.scattergl import Marker, Line
 from plotly.subplots import make_subplots
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
@@ -25,11 +26,12 @@ def addLines(fig: go.FigureWidget, **line_styles):
         if type(line) != dict:
             line = {'hf_y': line}  # if there is only one value specified - interpret as Y series
 
+        # layout parameters can be redefined also in line_styles or line_data
         if line_name == 'layout':
             for param_name in line:
                 fig.layout[param_name] = line[param_name]
         else:
-            line_class = go.scattergl.Marker if line.get('mode') == 'markers' else go.scattergl.Line
+            line_class = Marker if line.get('mode') == 'markers' else Line
             trace_dict = {}  # parameters not belong to the Line will be moved to upper-levels
             scatter_dict = {}
             line_dict = {}
