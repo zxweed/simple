@@ -176,3 +176,22 @@ def tickVolume(T: NDArray[TTrade], threshold: int) -> np.array:
     c = resampleVolume(T, threshold, OHLC)
     OHLC.resize(c, refcheck=False)
     return OHLC[['DT', 'Close']].view(np.recarray)
+
+
+@njit
+def npJoin(S1, S2: np.array) -> int:
+    """
+    Returns indexes for joining two timeseries
+
+    :param S1 - Indexes of first timeseries
+    :param S2 - Indexed of second timeseries
+    """
+
+    j = 0
+    Idx = np.zeros(len(S1), dtype=np.int32)
+    for s in range(len(S1)):
+        while j < len(S2) - 1 and S1[s] >= S2[j]:
+            j += 1
+        Idx[s] = j - 1
+
+    return Idx
