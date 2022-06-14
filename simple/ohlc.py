@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 
 TTrade = np.dtype([
-    ('DT', '<M8[ns]'),
+    ('DT', '<M8[us]'),
     ('PriceA', '<f8'),
     ('PriceB', '<f8'),
     ('Volume', '<f8')])
@@ -23,10 +23,11 @@ TOHLC = np.dtype([
 # Debounced timeseries record structure
 TDebounce = np.dtype([
     ('DT', '<M8[us]'),
+    ('Index', int),
     ('Price', float),
-    ('Duration', int),
+    ('Duration', '<m8[us]'),
 
-    ('Size', float),
+    ('Volume', float),
     ('BuySize', float),
     ('SellSize', float),
 
@@ -85,17 +86,16 @@ def midPrice(T: NDArray[TTrade], stepPrice: float) -> NDArray[float]:
     return dest
 
 
-#@njit(nogil=True)
+@njit(nogil=True)
 def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDebounce]) -> int:
     t = c = 0
     DebA.Price[c] = MidA[t]
     DebA.DT[c] = T.DateTimeA[t]
 
     while t < len(MidA):
-        while t < len(MidA) and MidA[t] == MidA[c]:
-            t += 1
+        while t < len(MidA) and MidA[t] == DebA.Price[c]:
             DebA.Count[c] += 1
-            DebA.Size[c] += np.abs(T.VolumeA[t])
+            DebA.Volume[c] += np.abs(T.VolumeA[t])
             if T.VolumeA[t] > 0:
                 DebA.BuyCount[c] += 1
                 DebA.BuySize[c] += T.VolumeA[t]
@@ -103,13 +103,16 @@ def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDe
                 DebA.SellCount[c] += 1
                 DebA.SellSize[c] += T.VolumeA[t]
 
-        price = MidA[t] if t < len(MidA) else MidA[t - 1]
-        c += 1
-        DebA.Price[c] = price
-        DebA.DT[c] = T.DateTimeA[t]
-        DebA.Duration[c] = T.DateTimeA[t] - T.DateTimeA[k]
+            DebA.Duration[c] = T.DateTimeA[t] - DebA.DT[c]
+            t += 1
 
-    return c + 1  # c is the last index of debounced value, so return length
+        c += 1
+        if t < len(MidA):   # prepare the next candle if available
+            DebA.Price[c] = MidA[t]
+            DebA.DT[c] = T.DateTimeA[t]
+            DebA.Index[c] = c
+
+    return c
 
 
 def debounce(T: NDArray[TTrade]) -> NDArray[TDebounce]:
