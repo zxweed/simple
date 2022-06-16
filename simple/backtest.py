@@ -140,10 +140,10 @@ def backtestLimit(T: NDArray[TTrade], qA: NDArray[float], qB: NDArray[float]) ->
     return trades
 
 
-def npBacktestLimit(T: NDArray[TTrade], qA: NDArray[float], qB: NDArray[float], fee_percent=default_fee) -> NDArray[TPairTrade]:
+def npBacktestLimit(T: NDArray[TTrade], qA: NDArray[float], qB: NDArray[float]) -> NDArray[TPairTrade]:
     """Converts trades from the limit-backtester to structured array"""
 
-    return npTrades(backtestLimit(T, qA, qB, fee_percent=fee_percent))
+    return npTrades(backtestLimit(T, qA, qB))
 
 
 def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bool = False) -> NDArray[TProfit]:
