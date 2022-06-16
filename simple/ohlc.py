@@ -1,41 +1,7 @@
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
-
-
-TTrade = np.dtype([
-    ('DateTimeA', 'M8[us]'),
-    ('LocalTimeA', 'M8[us]'),
-    ('PriceA', float),
-    ('VolumeA', float),
-    ('OpenIntA', float)])
-
-# candle record structure
-TOHLC = np.dtype([
-    ('DT', '<M8[us]'),
-    ('Open', float),
-    ('High', float),
-    ('Low', float),
-    ('Close', float),
-    ('Volume', float),
-    ('Buy', int),
-    ('Sell', int)])
-
-# Debounced timeseries record structure
-TDebounce = np.dtype([
-    ('DT', '<M8[us]'),
-    ('Index', int),
-    ('Price', float),
-    ('Duration', '<m8[us]'),
-
-    ('Volume', float),
-    ('BuySize', float),
-    ('SellSize', float),
-
-    ('Count', int),
-    ('BuyCount', int),
-    ('SellCount', int)
-])
+from simple.types import TTrade, TDebounce, TOHLC
 
 
 @njit(nogil=True)
@@ -88,13 +54,27 @@ def midPrice(T: NDArray[TTrade], stepPrice: float) -> NDArray[float]:
 
 
 @njit(nogil=True)
+def _isclose(x, y, rtol=1e-05, atol=1e-08, equal_nan=False):
+    """Backported from https://github.com/numba/numba/pull/7067, until issue is resolved."""
+
+    if np.isnan(x) and np.isnan(y):
+        return equal_nan
+    elif np.isinf(x) and np.isinf(y):
+        return (x > 0) == (y > 0)
+    elif np.isinf(x) or np.isinf(y):
+        return False
+    else:
+        return abs(x - y) <= atol + rtol * abs(y)
+
+
+@njit(nogil=True)
 def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDebounce]) -> int:
     t = c = 0
     DebA.Price[c] = MidA[t]
     DebA.DT[c] = T.DateTimeA[t]
 
     while t < len(MidA):
-        while t < len(MidA) and MidA[t] == DebA.Price[c]:
+        while t < len(MidA) and _isclose(MidA[t], DebA.Price[c]):
             DebA.Count[c] += 1
             DebA.Volume[c] += np.abs(T.VolumeA[t])
             if T.VolumeA[t] > 0:
@@ -107,6 +87,7 @@ def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDe
             DebA.Duration[c] = T.DateTimeA[t] - DebA.DT[c]
             t += 1
 
+        DebA.DT[c] = T.DateTimeA[t]
         c += 1
         if t < len(MidA):   # prepare the next candle if available
             DebA.Price[c] = MidA[t]
