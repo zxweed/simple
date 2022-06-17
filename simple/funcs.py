@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from numba import njit
 from joblib import Parallel, delayed
+from simple.types import TTrade
+from numpy.typing import NDArray
 
 
 @np.vectorize
@@ -33,7 +35,7 @@ def Ratio(vA, vB, L) -> np.ndarray:
 
 
 @njit(nogil=True)
-def vPIN(T: np.array, period: int = 1000) -> np.ndarray:
+def vPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
     """Some version of Volume-Synchronized Probability of Informed Trading - paper by Easley, Lopez de Prado, O’Hara"""
     A = 0
     B = 0
@@ -65,7 +67,7 @@ def vPIN(T: np.array, period: int = 1000) -> np.ndarray:
 
 
 @njit(nogil=True)
-def cPIN(T: np.array, period: int = 1000) -> np.ndarray:
+def cPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
     """Tick-syncronized imbalance ratio"""
     A = 0
     B = 0
@@ -97,7 +99,7 @@ def cPIN(T: np.array, period: int = 1000) -> np.ndarray:
 
 
 @njit(nogil=True)
-def tickSpeed(T: np.array, period: int = 1000) -> np.ndarray:
+def tickSpeed(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
     """Tick speed indicator (change of price in dollars per second)"""
     resultA = np.zeros(len(T), dtype=np.float32)
     resultA[:period] = np.nan
@@ -113,23 +115,23 @@ def tickSpeed(T: np.array, period: int = 1000) -> np.ndarray:
 
 
 @njit(nogil=True)
-def vwap(priceA: np.array, volumeA: np.array, period: int, destA: np.array = None) -> np.ndarray:
+def vwap(T: NDArray[TTrade], period: int, destA: np.array = None) -> NDArray[float]:
     """Volume Weighted Average Price"""
     turnover = 0.
     size = 0.
-    sizeA = np.abs(volumeA)
+    sizeA = np.abs(T.VolumeA)
 
     if destA is None:
-        destA = np.zeros(len(priceA))
+        destA = np.zeros(len(T.PriceA))
 
     for i in range(period):
         size += sizeA[i]
-        turnover += sizeA[i] * priceA[i]
+        turnover += sizeA[i] * T.PriceA[i]
 
-    for i in range(period, len(priceA)):
+    for i in range(period, len(T.PriceA)):
         k = i - period
         size += sizeA[i] - sizeA[k]
-        turnover += sizeA[i] * priceA[i] - sizeA[k] * priceA[k]
+        turnover += sizeA[i] * T.PriceA[i] - sizeA[k] * T.PriceA[k]
         destA[i] = turnover / size
 
     destA[:period] = destA[period]
