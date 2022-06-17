@@ -130,11 +130,11 @@ def interactFigure(model: callable, height: int = default_height, rows: int = 1,
     return VBox([HBox(sliders), fig])
 
 
-def interactTable(model: callable, line_styles: dict, X: pd.DataFrame,
-                  height: int = default_height, rows: int = 1, template: str = default_template) -> widgets:
+def interactTable(model: callable, X: pd.DataFrame, height: int = default_height, rows: int = 1,
+                  template: str = default_template, **line_styles) -> widgets:
     """Interactive parameter table browser"""
 
-    box = interactFigure(model, line_styles, height=height, rows=rows, template=template)
+    box = interactFigure(model, height=height, rows=rows, template=template, **line_styles)
 
     def on_changed(event, grid):
         changed = grid.get_changed_df()
