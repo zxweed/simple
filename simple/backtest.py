@@ -1,5 +1,4 @@
 import numpy as np
-from typing import List
 from numba import njit
 from numba.typed import List
 from numba.types import int64, float64, Tuple
