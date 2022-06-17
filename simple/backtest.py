@@ -165,7 +165,7 @@ def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bo
     return P
 
 
-def getLong(trades: NDArray[TPairTrade]) -> NDArray[TPairTrade]:
+def getLong(trades: NDArray[TPairTrade]) -> dict:
     """Returns long trades only in dictionary format"""
 
     LongEntry = trades[['X0', 'Price0']][trades.Size > 0]
@@ -174,7 +174,7 @@ def getLong(trades: NDArray[TPairTrade]) -> NDArray[TPairTrade]:
             'y': np.concatenate((LongEntry.Price0, LongExit.Price1))}
 
 
-def getShort(trades: NDArray[TPairTrade]) -> NDArray[TPairTrade]:
+def getShort(trades: NDArray[TPairTrade]) -> dict:
     """Returns short trades only in dictionary format"""
 
     ShortEntry = trades[['X0', 'Price0']][trades.Size < 0]

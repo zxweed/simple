@@ -36,9 +36,9 @@ def Ratio(vA, vB, L) -> np.ndarray:
 
 @njit(nogil=True)
 def vPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
+
     """Some version of Volume-Synchronized Probability of Informed Trading - paper by Easley, Lopez de Prado, O’Hara"""
-    A = 0
-    B = 0
+    A = B = 0
     resultA = np.zeros(len(T), dtype=np.float32)
     resultA[:period] = np.nan
 
@@ -69,8 +69,8 @@ def vPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
 @njit(nogil=True)
 def cPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
     """Tick-syncronized imbalance ratio"""
-    A = 0
-    B = 0
+
+    A = B = 0
     resultA = np.zeros(len(T), dtype=np.float32)
 
     # during init stage we can't calculate anything, but cumulate the values
@@ -141,8 +141,8 @@ def vwap(T: NDArray[TTrade], period: int, destA: np.array = None) -> NDArray[flo
 @njit(nogil=True)
 def sma(src: np.ndarray, period: int, dest: np.ndarray):
     """A fast SMA detrender that stores the response in the series given by the last parameter, rather than returning it (to save memory)"""
-    n = 0
-    mean = 0.
+    n: int = 0
+    mean: float = 0.
 
     for i in range(period):
         n += 1
