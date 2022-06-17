@@ -3,6 +3,18 @@ jupyter nbextension enable --py widgetsnbextension
 jupyter nbextension enable --py --sys-prefix ipyslickgrid
 
 pip install plotly_resampler
+
+
+wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+tar xvzf ta-lib-0.4.0-src.tar.gz
+cd ta-lib
+mkdir /home/jovyan/ta
+./configure --prefix=/home/jovyan/ta
+make
+make install
+export TA_LIBRARY_PATH=/home/jovyan/ta/lib
+export TA_INCLUDE_PATH=/home/jovyan/ta/include
 pip install ta-lib
+
 
 echo '.container { width:95% !important; }' > /srv/conda/envs/notebook/lib/python3.9/site-packages/notebook/static/custom/custom.css
