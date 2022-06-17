@@ -118,8 +118,9 @@ def interactFigure(model: callable, height: int = default_height, rows: int = 1,
     defaults = dict(reversed(x.items()))
     fig = chartFigure(height=height, rows=rows, template=template, **line_styles)
 
-    def update(**arg):
-        updateLines(fig, **model(**arg)[1])
+    def update(**kwargs):
+        lines = model(**kwargs)[1]
+        updateLines(fig, **lines)
 
     sliders = interactive(update, **defaults).children[:-1]
 
@@ -146,10 +147,11 @@ def interactTable(model: callable, X: pd.DataFrame, height: int = default_height
         updateSliders(sliders, **param)
 
         fig = box.children[1]
-        updateLines(fig, **model(**param)[1])
+        lines = model(**param)[1]
+        updateLines(fig, **lines)
 
-    grid = show_grid(X, grid_options={'editable': False, 'forceFitColumns': True, 'multiSelect': False},
-                     column_options={'defaultSortAsc': False})
+    grid = show_grid(X, column_options={'defaultSortAsc': False},
+                     grid_options={'editable': False, 'forceFitColumns': True, 'multiSelect': False})
     grid.on('selection_changed', on_changed)
 
     return VBox([box, grid])
