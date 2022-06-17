@@ -110,8 +110,7 @@ def updateSliders(sliders: widgets, **values: dict):
         slider.value = values[slider.description]
 
 
-def interactFigure(model: callable, line_styles: dict,
-                   height: int = default_height, rows: int = 1, template: str = default_template) -> widgets:
+def interactFigure(model: callable, height: int = default_height, rows: int = 1, template: str = default_template, **line_styles) -> widgets:
     """Interactive chart with model's internal data-series and sliders to change parameters"""
 
     spec = getfullargspec(model)
