@@ -6,6 +6,7 @@ from joblib import Parallel, delayed
 import inspect
 from datetime import datetime, timedelta
 from IPython.display import clear_output, display, Javascript
+import matplotlib as mpl
 
 
 class tqdmParallel(Parallel):
