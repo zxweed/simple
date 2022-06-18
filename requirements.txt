@@ -11,3 +11,4 @@ jupyter_contrib_nbextensions
 deap
 requests
 statsmodels
+matplotlib
