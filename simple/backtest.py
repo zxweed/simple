@@ -2,23 +2,9 @@ import numpy as np
 from numba import njit
 from numba.typed import List
 from numba.types import int64, float64, Tuple
-from simple.types import TTrade
+from simple.types import TTrade, TPairTrade
 from numpy.typing import NDArray
 
-
-TPairTrade = [
-    ('X0', np.int64), ('T0', 'M8[us]'), ('Price0', float), ('MidPrice0', float),
-    ('X1', np.int64), ('T1', 'M8[us]'), ('Price1', float), ('MidPrice1', float),
-    ('Size', float)]
-
-TProfit = [
-    ('Index', np.int64),
-    ('DT', 'M8[us]'),
-    ('RawPnL', float),
-    ('MidPnL', float),
-    ('Fee', float),
-    ('Profit', float)
-]
 
 fp32 = np.float32
 default_fee = 0.05

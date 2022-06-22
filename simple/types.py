@@ -39,3 +39,19 @@ TDebounce = np.dtype([
     ('BuyCount', int),
     ('SellCount', int)
 ])
+
+# Paired trade record structure
+TPairTrade = [
+    ('X0', np.int64), ('T0', 'M8[us]'), ('Price0', float), ('MidPrice0', float),
+    ('X1', np.int64), ('T1', 'M8[us]'), ('Price1', float), ('MidPrice1', float),
+    ('Size', float)]
+
+# Profit record structure
+TProfit = [
+    ('Index', np.int64),
+    ('DT', 'M8[us]'),
+    ('RawPnL', float),
+    ('MidPnL', float),
+    ('Fee', float),
+    ('Profit', float)
+]
