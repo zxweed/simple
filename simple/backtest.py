@@ -107,11 +107,11 @@ def backtestLimit(T: NDArray[TTrade], qA: NDArray[float], qB: NDArray[float]) ->
     buys = List.empty_list(signal_type)
     sells = List.empty_list(signal_type)
     trades = List.empty_list(trade_type)
-    ts = T.DateTimeA.view(np.int64)
+    ts = T.DT.view(np.int64)
     pos: int = 0
 
     for i in range(len(ts) - 1):
-        price = T.PriceA[i]
+        price = T.Price[i]
 
         if price > qA[i]:
             delta_pos = -min(pos + 1, 1)

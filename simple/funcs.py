@@ -44,22 +44,22 @@ def vPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
 
     # during init stage we can't calculate anything, but cumulate the values
     for i in range(period):
-        if T.VolumeA[i] < 0:
-            A += -T.VolumeA[i]
+        if T.Size[i] < 0:
+            A += -T.Size[i]
         else:
-            B += T.VolumeA[i]
+            B += T.Size[i]
 
     for i in range(period, len(T), 1):
         k = i - period
-        if T.VolumeA[i] < 0:
-            A += -T.VolumeA[i]
+        if T.Size[i] < 0:
+            A += -T.Size[i]
         else:
-            B += T.VolumeA[i]
+            B += T.Size[i]
 
-        if T.VolumeA[k] < 0:
-            A -= -T.VolumeA[k]
+        if T.Size[k] < 0:
+            A -= -T.Size[k]
         else:
-            B -= T.VolumeA[k]
+            B -= T.Size[k]
 
         resultA[i] = (B - A) / (B + A) * 100
 
@@ -76,19 +76,19 @@ def cPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
     # during init stage we can't calculate anything, but cumulate the values
     resultA[:period] = np.nan
     for i in range(period):
-        if T.VolumeA[i] < 0:
+        if T.Size[i] < 0:
             A += 1
         else:
             B += 1
 
     for i in range(period, len(T), 1):
         k = i - period
-        if T.VolumeA[i] < 0:
+        if T.Size[i] < 0:
             A += 1
         else:
             B += 1
 
-        if T.VolumeA[k] < 0:
+        if T.Size[k] < 0:
             A -= 1
         else:
             B -= 1
@@ -106,10 +106,9 @@ def tickSpeed(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
 
     for i in range(period, len(T), 1):
         k = i - period
-        t0 = T.DateTimeA[k]
-        t1 = T.DateTimeA[i]
+        t0, t1 = T.DT[k], T.DT[i]
         delta = np.int64(t1 - t0)
-        resultA[i] = (T.PriceA[i] - T.PriceA[k]) * 1e6 / delta if delta > 0 else 0
+        resultA[i] = (T.Price[i] - T.Price[k]) * 1e6 / delta if delta > 0 else 0
 
     return resultA
 
@@ -119,19 +118,19 @@ def vwap(T: NDArray[TTrade], period: int, destA: np.array = None) -> NDArray[flo
     """Volume Weighted Average Price"""
     turnover = 0.
     size = 0.
-    sizeA = np.abs(T.VolumeA)
+    sizeA = np.abs(T.Size)
 
     if destA is None:
-        destA = np.zeros(len(T.PriceA))
+        destA = np.zeros(len(T.Price))
 
     for i in range(period):
         size += sizeA[i]
-        turnover += sizeA[i] * T.PriceA[i]
+        turnover += sizeA[i] * T.Price[i]
 
-    for i in range(period, len(T.PriceA)):
+    for i in range(period, len(T.Price)):
         k = i - period
         size += sizeA[i] - sizeA[k]
-        turnover += sizeA[i] * T.PriceA[i] - sizeA[k] * T.PriceA[k]
+        turnover += sizeA[i] * T.Price[i] - sizeA[k] * T.Price[k]
         destA[i] = turnover / size
 
     destA[:period] = destA[period]

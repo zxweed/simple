@@ -6,50 +6,57 @@ from simple.types import TTrade, TDebounce, TOHLC
 
 @njit(nogil=True)
 def resampleVolume(T: NDArray[TTrade], threshold: int, OHLC: NDArray[TOHLC]) -> int:
-    t = c = 0
-    volume = 0
+    t = c = size = count = 0
 
     while t < len(T):
-        open = high = low = T.PriceA[t]
-        buy = sell = 0
-        while t < len(T) and volume < threshold:
-            volume += np.abs(T.VolumeA[t])
-            if T.PriceA[t] > high:
-                high = T.PriceA[t]
-            if T.PriceA[t] < low:
-                low = T.PriceA[t]
+        open = high = low = T.Price[t]
+        buySize = sellSize = buyCount = sellCount = 0
+        while t < len(T) and size < threshold:
+            size += np.abs(T.Size[t])
+            count += 1
+            if T.Price[t] > high:
+                high = T.Price[t]
+            if T.Price[t] < low:
+                low = T.Price[t]
             t += 1
-            if T.VolumeA[t] > 0:
-                buy += T.VolumeA[t]
+            if T.Size[t] > 0:
+                buySize += T.Size[t]
+                buyCount += 1
             else:
-                sell += T.VolumeA[t]
+                sellSize += T.Size[t]
+                sellCount += 1
 
-        OHLC['DT'][c] = T.DateTimeA[t]
+        OHLC['DT'][c] = T.DT[t]
         OHLC['Open'][c] = open
         OHLC['High'][c] = high
         OHLC['Low'][c] = low
-        OHLC['Close'][c] = T.PriceA[t]
-        OHLC['Volume'][c] = volume
-        OHLC['Buy'][c] = buy
-        OHLC['Sell'][c] = sell
+        OHLC['Close'][c] = T.Price[t]
+
+        OHLC['Size'][c] = size
+        OHLC['BuySize'][c] = buySize
+        OHLC['SellSize'][c] = sellSize
+
+        OHLC['Count'][c] = count
+        OHLC['BuyCount'][c] = buyCount
+        OHLC['SellCount'][c] = sellCount
         c += 1
-        volume = 0
+        size = count = 0
 
     return c
 
 
-def getStepPrice(PriceA: NDArray[float]) -> float:
-    X = np.around(sorted(np.unique(np.abs(np.diff(PriceA)))), 8)
+def getStepPrice(Price: NDArray[float]) -> float:
+    X = np.around(sorted(np.unique(np.abs(np.diff(Price)))), 8)
     stepPrice = X[X > 0][0]
     return stepPrice
 
 
 @njit(nogil=True)
 def midPrice(T: NDArray[TTrade], stepPrice: float) -> NDArray[float]:
-    dest = np.zeros_like(T.PriceA)
+    dest = np.zeros_like(T.Price)
 
     for t in range(len(T)):
-        dest[t] = T.PriceA[t] - stepPrice / 2 if T.VolumeA[t] > 0 else T.PriceA[t] + stepPrice / 2
+        dest[t] = T.Price[t] - stepPrice / 2 if T.Size[t] > 0 else T.Price[t] + stepPrice / 2
     return dest
 
 
@@ -71,27 +78,27 @@ def _isclose(x, y, rtol=1e-05, atol=1e-08, equal_nan=False):
 def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDebounce]) -> int:
     t = c = 0
     DebA.Price[c] = MidA[t]
-    DebA.DT[c] = T.DateTimeA[t]
+    DebA.DT[c] = T.DT[t]
 
     while t < len(MidA):
         while t < len(MidA) and _isclose(MidA[t], DebA.Price[c]):
             DebA.Count[c] += 1
-            DebA.Volume[c] += np.abs(T.VolumeA[t])
-            if T.VolumeA[t] > 0:
+            DebA.Size[c] += np.abs(T.Size[t])
+            if T.Size[t] > 0:
                 DebA.BuyCount[c] += 1
-                DebA.BuySize[c] += T.VolumeA[t]
+                DebA.BuySize[c] += T.Size[t]
             else:
                 DebA.SellCount[c] += 1
-                DebA.SellSize[c] += T.VolumeA[t]
+                DebA.SellSize[c] += T.Size[t]
 
-            DebA.Duration[c] = T.DateTimeA[t] - DebA.DT[c]
+            DebA.Duration[c] = T.DT[t] - DebA.DT[c]
             t += 1
 
-        DebA.DT[c] = T.DateTimeA[t]
+        DebA.DT[c] = T.DT[t]
         c += 1
         if t < len(MidA):   # prepare the next candle if available
             DebA.Price[c] = MidA[t]
-            DebA.DT[c] = T.DateTimeA[t]
+            DebA.DT[c] = T.DT[t]
             DebA.Index[c] = c
 
     return c
@@ -100,7 +107,7 @@ def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDe
 def debounce(T: NDArray[TTrade]) -> NDArray[TDebounce]:
     """Drops bounce trades (that not change best bidask prices)"""
 
-    stepPrice = getStepPrice(T.PriceA)
+    stepPrice = getStepPrice(T.Price)
     MidA = midPrice(T, stepPrice)
     DebA = np.zeros(len(MidA), dtype=TDebounce).view(np.recarray)
     c = resampleDebounce(MidA, T, DebA)
@@ -132,7 +139,7 @@ def resampleRenko(P: np.array, step: int = 1) -> int:
 
 
 def renko(T: NDArray[TTrade], step: int = 1) -> np.array:
-    stepPrice = getStepPrice(T.PriceA)
+    stepPrice = getStepPrice(T.Price)
     MidA = midPrice(T, stepPrice)
     RenkoL = resampleRenko(MidA, step)
     return RenkoL

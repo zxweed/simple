@@ -2,11 +2,11 @@ import numpy as np
 
 # Tick trade record structure
 TTrade = np.dtype([
-    ('DateTimeA', 'M8[us]'),
-    ('LocalTimeA', 'M8[us]'),
-    ('PriceA', float),
-    ('VolumeA', float),
-    ('OpenIntA', float)])
+    ('DT', 'M8[us]'),
+    ('LocalDT', 'M8[us]'),
+    ('Price', float),
+    ('Size', float),
+    ('OpenInt', float)])
 
 # Candle record structure
 TOHLC = np.dtype([
@@ -15,9 +15,14 @@ TOHLC = np.dtype([
     ('High', float),
     ('Low', float),
     ('Close', float),
-    ('Volume', float),
-    ('Buy', int),
-    ('Sell', int)])
+
+    ('Size', float),
+    ('BuySize', float),
+    ('SellSize', float),
+
+    ('Count', int),
+    ('BuyCount', int),
+    ('SellCount', int)])
 
 # Debounced timeseries record structure
 TDebounce = np.dtype([
@@ -26,7 +31,7 @@ TDebounce = np.dtype([
     ('Price', float),
     ('Duration', '<m8[us]'),
 
-    ('Volume', float),
+    ('Size', float),
     ('BuySize', float),
     ('SellSize', float),
 
