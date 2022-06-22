@@ -36,8 +36,8 @@ def Ratio(vA, vB, L) -> np.ndarray:
 
 @njit(nogil=True)
 def vPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
-
     """Some version of Volume-Synchronized Probability of Informed Trading - paper by Easley, Lopez de Prado, O’Hara"""
+
     A = B = 0
     resultA = np.zeros(len(T), dtype=np.float32)
     resultA[:period] = np.nan
@@ -68,7 +68,7 @@ def vPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
 
 @njit(nogil=True)
 def cPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
-    """Tick-syncronized imbalance ratio"""
+    """Tick-synchronized buy/sell count imbalance ratio"""
 
     A = B = 0
     resultA = np.zeros(len(T), dtype=np.float32)

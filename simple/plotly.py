@@ -1,14 +1,16 @@
 import pandas as pd
 import numpy as np
 import re
-import plotly.graph_objs as go
-from plotly.graph_objs.scattergl import Marker, Line
-from plotly.subplots import make_subplots
+from numpy.typing import NDArray
+from simple.backtest import TPairTrade
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
 from ipywidgets import widgets, interactive, HBox, VBox
-from plotly_resampler import FigureWidgetResampler
 from ipyslickgrid import show_grid
+import plotly.graph_objs as go
+from plotly.graph_objs.scattergl import Marker, Line
+from plotly.subplots import make_subplots
+from plotly_resampler import FigureWidgetResampler
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -161,3 +163,19 @@ def chartParallel(X: pd.DataFrame, height: int = 400) -> widgets:
     fig.update_layout(autosize=True, height=height, template=default_template, margin=dict(l=45, r=45, b=20, t=50, pad=3))
     return fig
 
+
+def chartTrades(trades: NDArray[TPairTrade]) -> dict:
+    Long = trades[trades.Size > 0]
+    Short = trades[trades.Size < 0]
+
+    return dict(
+        EnterLong=dict(x=Long.T0, y=Long.Price0, mode='markers',
+                       marker=dict(symbol='triangle-up', size=12, line_color='darkgreen', line_width=1, color='green')),
+        ExitLong=dict(x=Long.T1, y=Long.Price1, mode='markers',
+                      marker=dict(symbol='x', size=10, line_color='darkgreen', line_width=1, color='green')),
+
+        EnterShort=dict(x=Short.T0, y=Short.Price0, mode='markers',
+                        marker=dict(symbol='triangle-down', size=12, line_color='darkred', line_width=1, color='red')),
+        ExitShort=dict(x=Short.T1, y=Short.Price1, mode='markers',
+                       marker=dict(symbol='x', size=10, line_color='darkred', line_width=1, color='red'))
+    )
