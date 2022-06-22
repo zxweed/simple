@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
 import inspect
+import psutil
 from datetime import datetime, timedelta
 from IPython.display import clear_output, display, Javascript
 import matplotlib as mpl
@@ -12,10 +13,11 @@ import matplotlib as mpl
 class tqdmParallel(Parallel):
     """Show progress bar when parallel processing"""
 
-    def __init__(self, n_jobs=-1, progress=True, total=None, *args, **kwargs):
+    def __init__(self, n_jobs=-1, progress=True, total=None, postfix=None, *args, **kwargs):
         self._progress = progress
         self._total = total
         self._lasttime = datetime.now()
+        self._postfix = postfix if type(postfix) == dict else {'name': postfix} if postfix is not None else None
         super().__init__(n_jobs=n_jobs, *args, **kwargs)
 
     def __call__(self, *args, **kwargs):
@@ -28,7 +30,11 @@ class tqdmParallel(Parallel):
         self._pbar.n = self.n_completed_tasks
 
         if datetime.now() > self._lasttime + timedelta(milliseconds=500):
-            self._pbar.refresh()
+            postfix = {'cpu': f'{psutil.cpu_percent():1.0f}%'}
+            if self._postfix is not None:
+                postfix |= self._postfix
+
+            self._pbar.set_postfix(postfix, refresh=True)
             self._lasttime = datetime.now()
 
 
