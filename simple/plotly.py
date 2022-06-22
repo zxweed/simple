@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 from numpy.typing import NDArray
-from simple.backtest import TPairTrade
+from simple.types import TPairTrade
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
 from ipywidgets import widgets, interactive, HBox, VBox

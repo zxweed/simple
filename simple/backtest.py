@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 from numba.typed import List
 from numba.types import int64, float64, Tuple
-from simple.types import TTrade, TPairTrade
+from simple.types import TTrade, TPairTrade, TProfit
 from numpy.typing import NDArray
 
 
