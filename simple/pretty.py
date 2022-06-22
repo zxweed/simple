@@ -32,7 +32,7 @@ class tqdmParallel(Parallel):
         if datetime.now() > self._lasttime + timedelta(milliseconds=500):
             postfix = {'cpu': f'{psutil.cpu_percent():1.0f}%'}
             if self._postfix is not None:
-                postfix |= self._postfix
+                postfix = {**postfix, **self._postfix}  # merge dict operator with python 3.8 compatibility
 
             self._pbar.set_postfix(postfix, refresh=True)
             self._lasttime = datetime.now()
