@@ -256,3 +256,24 @@ def JTPO(SrcA: np.array, Period: int) -> np.array:
         Result[Bar] = result
 
     return Result
+
+
+@njit
+def JMA(src, period: int = 7, phase: float = 50, power: int = 2):
+    Result = np.copy(src)
+    
+    phaseRatio = 0.5 if phase < -100 else (2.5 if phase > 100 else phase / 100 + 1.5)
+    beta = 0.45 * (period - 1) / (0.45 * (period - 1) + 2)
+    alpha = pow(beta, power)
+
+    e0 = np.full_like(src, 0)
+    e1 = np.full_like(src, 0)
+    e2 = np.full_like(src, 0)
+
+    for i in range(1, src.shape[0]):
+        e0[i] = (1 - alpha) * src[i] + alpha * e0[i-1]
+        e1[i] = (src[i] - e0[i]) * (1 - beta) + beta * e1[i-1]
+        e2[i] = (e0[i] + phaseRatio * e1[i] - Result[i - 1]) * pow(1 - alpha, 2) + pow(alpha, 2) * e2[i - 1]
+        Result[i] = e2[i] + Result[i - 1]
+
+    return Result
