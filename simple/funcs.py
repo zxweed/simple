@@ -137,6 +137,50 @@ def vwap(T: NDArray[TTrade], period: int, destA: np.array = None) -> NDArray[flo
     return destA
 
 
+@njit
+def hwma(source, na: float = 0.2, nb: float = 0.1, nc: float = 0.1):
+    """Holt-Winter Moving Average"""
+    last_a = last_v = 0
+    last_f = source[0]
+    result = np.copy(source)
+    for i in range(source.size):
+        F = (1.0 - na) * (last_f + last_v + 0.5 * last_a) + na * source[i]
+        V = (1.0 - nb) * (last_v + last_a) + nb * (F - last_f)
+        A = (1.0 - nc) * last_a + nc * (V - last_v)
+        result[i] = F + V + 0.5 * A
+        last_a, last_f, last_v = A, F, V  # update values
+    return result
+
+
+@njit
+def cwma(source, period):
+    """Cubed Weighted Moving Average"""
+    result = np.copy(source)
+    for j in range(period + 1, source.shape[0]):
+        my_sum = 0.0
+        weightSum = 0.0
+        for i in range(period - 1):
+            weight = np.power(period - i, 3)
+            my_sum += (source[j - i] * weight)
+            weightSum += weight
+        result[j] = my_sum / weightSum
+    return result
+
+
+@njit
+def epma(source, period, offset):
+    result = np.copy(source)
+    for j in range(period + offset + 1 , source.shape[0]):
+        my_sum = 0.0
+        weightSum = 0.0
+        for i in range(period - 1):
+            weight = period - i - offset
+            my_sum += (source[j - i] * weight)
+            weightSum += weight
+        result[j] = 1 / weightSum * my_sum
+    return result
+
+
 @njit(nogil=True)
 def sma(src: np.ndarray, period: int, dest: np.ndarray):
     """A fast SMA detrender that stores the response in the series given by the last parameter, rather than returning it (to save memory)"""
