@@ -3,14 +3,13 @@ from numba import njit
 
 
 @njit
-def supersmoother_fast(source: np.array, period: int) -> np.array:
+def supersmoother(source: np.array, period: int) -> np.array:
     a = np.exp(-1.414 * np.pi / period)
     b = 2 * a * np.cos(1.414 * np.pi / period)
-    newseries = np.copy(source)
+    result = np.copy(source)
     for i in range(2, source.shape[0]):
-        newseries[i] = (1 + a ** 2 - b) / 2 * (source[i] + source[i - 1]) \
-                       + b * newseries[i - 1] - a ** 2 * newseries[i - 2]
-    return newseries
+        result[i] = (1 + a ** 2 - b) / 2 * (source[i] + source[i - 1]) + b * result[i - 1] - a ** 2 * result[i - 2]
+    return result
 
 
 @njit
@@ -42,7 +41,7 @@ def reflex(source: np.ndarray, period: int = 20) -> np.ndarray:
     :return: np.ndarray
     """
 
-    ssf = supersmoother_fast(source, period / 2)
+    ssf = supersmoother(source, period / 2)
     rf = reflex_fast(ssf, period)
 
     return rf

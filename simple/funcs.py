@@ -138,25 +138,11 @@ def vwap(T: NDArray[TTrade], period: int, destA: np.array = None) -> NDArray[flo
 
 
 @njit
-def hwma(source, na: float = 0.2, nb: float = 0.1, nc: float = 0.1):
-    """Holt-Winter Moving Average"""
-    last_a = last_v = 0
-    last_f = source[0]
-    result = np.copy(source)
-    for i in range(source.size):
-        F = (1.0 - na) * (last_f + last_v + 0.5 * last_a) + na * source[i]
-        V = (1.0 - nb) * (last_v + last_a) + nb * (F - last_f)
-        A = (1.0 - nc) * last_a + nc * (V - last_v)
-        result[i] = F + V + 0.5 * A
-        last_a, last_f, last_v = A, F, V  # update values
-    return result
-
-
-@njit
-def cwma(source, period):
+def cwma(source: np.ndarray, period: int) -> np.ndarray:
     """Cubed Weighted Moving Average"""
-    result = np.copy(source)
-    for j in range(period + 1, source.shape[0]):
+    result = np.zeros_like(source)
+    k = period + 1
+    for j in range(k, source.shape[0]):
         my_sum = 0.0
         weightSum = 0.0
         for i in range(period - 1):
@@ -164,13 +150,16 @@ def cwma(source, period):
             my_sum += (source[j - i] * weight)
             weightSum += weight
         result[j] = my_sum / weightSum
+
+    result[:k] = result[k]
     return result
 
 
 @njit
-def epma(source, period, offset):
-    result = np.copy(source)
-    for j in range(period + offset + 1 , source.shape[0]):
+def epma(source: np.ndarray, period: int, offset: int = 0) -> np.ndarray:
+    result = np.zeros_like(source)
+    k = period + offset + 1
+    for j in range(k, source.shape[0]):
         my_sum = 0.0
         weightSum = 0.0
         for i in range(period - 1):
@@ -178,6 +167,8 @@ def epma(source, period, offset):
             my_sum += (source[j - i] * weight)
             weightSum += weight
         result[j] = 1 / weightSum * my_sum
+
+    result[:k] = result[k]
     return result
 
 
