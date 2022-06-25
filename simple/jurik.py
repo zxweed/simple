@@ -266,9 +266,9 @@ def JMA(src, period: int = 7, phase: float = 50, power: int = 2):
     beta = 0.45 * (period - 1) / (0.45 * (period - 1) + 2)
     alpha = pow(beta, power)
 
-    e0 = np.full_like(src, 0)
-    e1 = np.full_like(src, 0)
-    e2 = np.full_like(src, 0)
+    e0 = np.zeros_like(src)
+    e1 = np.zeros_like(src)
+    e2 = np.zeros_like(src)
 
     for i in range(1, src.shape[0]):
         e0[i] = (1 - alpha) * src[i] + alpha * e0[i-1]
@@ -276,4 +276,5 @@ def JMA(src, period: int = 7, phase: float = 50, power: int = 2):
         e2[i] = (e0[i] + phaseRatio * e1[i] - Result[i - 1]) * pow(1 - alpha, 2) + pow(alpha, 2) * e2[i - 1]
         Result[i] = e2[i] + Result[i - 1]
 
+    Result[:period*2] = Result[period*2]
     return Result
