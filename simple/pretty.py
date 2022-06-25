@@ -4,9 +4,8 @@ import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
 import inspect
-import psutil
+from psutil import cpu_percent
 from datetime import datetime, timedelta
-from IPython.display import clear_output, display, Javascript
 import matplotlib as mpl
 
 
@@ -30,7 +29,7 @@ class tqdmParallel(Parallel):
         self._pbar.n = self.n_completed_tasks
 
         if datetime.now() > self._lasttime + timedelta(milliseconds=500):
-            postfix = {'cpu': f'{psutil.cpu_percent():1.0f}%'}
+            postfix = {'cpu': f'{cpu_percent():1.0f}%'}
             if self._postfix is not None:
                 postfix = {**postfix, **self._postfix}  # merge dict operator with python 3.8 compatibility
 
@@ -119,4 +118,3 @@ def background(self, scale='Linear', cmap='RdYlGn', **css):
 def pp(X: pd.DataFrame):
     """Pretty print pandas dataframe"""
     return X.style.apply(background, axis=None)
-
