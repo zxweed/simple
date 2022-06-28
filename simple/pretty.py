@@ -96,7 +96,7 @@ def Corr(X, Y):
     return np.corrcoef(np.nan_to_num(X), np.nan_to_num(Y))[0, 1] * 100
 
 
-def background(self, scale='Linear', cmap='RdYlGn', **css) -> pd.Styler:
+def background(self, scale='Linear', cmap='RdYlGn', **css) -> pd.io.formats.style.Styler:
     """For use with `DataFrame.style.apply` this function will apply a heatmap color gradient *elementwise* to the calling DataFrame
 
     self : pd.DataFrame
