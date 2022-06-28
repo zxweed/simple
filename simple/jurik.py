@@ -67,8 +67,7 @@ def JRSX(SrcA: np.array, APeriod: int) -> np.array:
 @njit(nogil=True)
 def JCFBaux(SrcA: np.array, Depth: int) -> np.array:
     jrc04 = jrc05 = jrc06 = 0
-    Result = np.zeros_like(SrcA)   
-    
+    Result = np.zeros_like(SrcA)
     IntA = np.zeros_like(SrcA)
     for Bar in range(len(SrcA)):
         IntA[Bar] = abs(SrcA[Bar] - SrcA[Bar-1])
@@ -76,7 +75,7 @@ def JCFBaux(SrcA: np.array, Depth: int) -> np.array:
     for Bar in range(Depth, len(SrcA)-1):
         if Bar <= Depth * 2:
             jrc04 = jrc05 = jrc06 = 0
-            
+
             for k in range(Depth):
                 jrc04 = jrc04 + abs(SrcA[Bar-k] - SrcA[Bar-k-1])
                 jrc05 = jrc05 + (Depth - k) * abs(SrcA[Bar-k] - SrcA[Bar-k-1])
@@ -89,7 +88,7 @@ def JCFBaux(SrcA: np.array, Depth: int) -> np.array:
 
         jrc08 = abs(Depth * SrcA[Bar] - jrc06)
         Result[Bar] = 0 if jrc05 == 0 else jrc08 / jrc05
-    
+
     return Result
 
 
@@ -219,14 +218,14 @@ def JTPO(SrcA: np.array, Period: int) -> np.array:
                     if arr1[k] < var24:
                         var24 = arr1[k]
                         var12 = k
-          
+
                 var20 = arr1[j]
                 arr1[j] = arr1[var12]
                 arr1[var12] = var20
                 var20 = arr2[j]
                 arr2[j] = arr2[var12]
                 arr2[var12] = var20
-      
+
             j = 1
             while f48 > j:
                 k = j + 1
@@ -258,17 +257,17 @@ def JTPO(SrcA: np.array, Period: int) -> np.array:
     return Result
 
 
-@njit
+@njit(nogil=True)
 def JMA(src, period: int = 7, phase: float = 50, power: int = 2):
     Result = np.copy(src)
-    
+
     phaseRatio = 0.5 if phase < -100 else (2.5 if phase > 100 else phase / 100 + 1.5)
     beta = 0.45 * (period - 1) / (0.45 * (period - 1) + 2)
     alpha = pow(beta, power)
 
-    e0 = np.full_like(src, 0)
-    e1 = np.full_like(src, 0)
-    e2 = np.full_like(src, 0)
+    e0 = np.zeros_like(src)
+    e1 = np.zeros_like(src)
+    e2 = np.zeros_like(src)
 
     for i in range(1, src.shape[0]):
         e0[i] = (1 - alpha) * src[i] + alpha * e0[i-1]
@@ -276,4 +275,5 @@ def JMA(src, period: int = 7, phase: float = 50, power: int = 2):
         e2[i] = (e0[i] + phaseRatio * e1[i] - Result[i - 1]) * pow(1 - alpha, 2) + pow(alpha, 2) * e2[i - 1]
         Result[i] = e2[i] + Result[i - 1]
 
+    Result[:period*2] = Result[period*2]
     return Result

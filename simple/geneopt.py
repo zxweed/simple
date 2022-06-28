@@ -13,6 +13,7 @@ import pandas as pd
 from itertools import product
 from simple.pretty import tqdmParallel
 from joblib import delayed
+from psutil import cpu_percent
 
 
 class Opt:
@@ -129,7 +130,7 @@ class GeneOpt(Opt):
                     ind.fitness.values = fitness_tuple
 
                 population = toolbox.select(offspring, k=len(population))
-                pbar.set_postfix({'fit': f'{fitness_value:,.2f}'})
+                pbar.set_postfix(dict(fit=f'{fitness_value:,.2f}', cpu=f'{cpu_percent():1.0f}%'))
 
         del creator.FitnessMax
         del creator.Individual

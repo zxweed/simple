@@ -83,7 +83,7 @@ def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDe
     while t < len(MidA):
         while t < len(MidA) and _isclose(MidA[t], DebA.Price[c]):
             DebA.Count[c] += 1
-            DebA.Size[c] += np.abs(T.Size[t])
+            DebA.Size[c] += T.Size[t]
             if T.Size[t] > 0:
                 DebA.BuyCount[c] += 1
                 DebA.BuySize[c] += T.Size[t]
