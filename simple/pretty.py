@@ -2,11 +2,10 @@
 from tqdm.auto import tqdm
 import pandas as pd
 import numpy as np
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, cpu_count
 import inspect
 import psutil
 from datetime import datetime, timedelta
-from IPython.display import clear_output, display, Javascript
 import matplotlib as mpl
 
 
@@ -72,12 +71,32 @@ def pxmap(func: callable, param, **kwargs):
     return pd.DataFrame([(*tpl(x[0]), *tpl(x[1])) for x in zip(param_list, X)], columns=param_names)
 
 
+def prun(indicator: callable, src, period: int, threads: int = cpu_count(), progress: bool = True) -> np.array:
+    """Parallel calculate any indicator by slicing source series"""
+    page_size = (len(src) - period + (threads - 1)) // threads
+    start_indexes = [t * page_size for t in range(threads)]
+    result_indexes = list(range(period, len(src), page_size))
+
+    with tqdmParallel(total=len(start_indexes), n_jobs=threads, require='sharedmem', progress=progress) as P:
+        FUNC = delayed(indicator)
+        slice_size = period + page_size
+        X = P(FUNC(src[start:start + slice_size], period) for start in start_indexes)
+
+    # store all slices to the result series
+    result = np.zeros(len(src))
+    for k, x in zip(result_indexes, X):
+        result[k:k + page_size] = x[period:]
+
+    result[:period] = np.nan
+    return result
+
+
 def Corr(X, Y):
     """Correlation coefficient"""
     return np.corrcoef(np.nan_to_num(X), np.nan_to_num(Y))[0, 1] * 100
 
 
-def background(self, scale='Linear', cmap='RdYlGn', **css):
+def background(self, scale='Linear', cmap='RdYlGn', **css) -> pd.Styler:
     """For use with `DataFrame.style.apply` this function will apply a heatmap color gradient *elementwise* to the calling DataFrame
 
     self : pd.DataFrame
@@ -92,8 +111,7 @@ def background(self, scale='Linear', cmap='RdYlGn', **css):
     Returns
     -------
     pd.DataFrame
-        The css styles to apply
-
+        The css styles to apply to the calling DataFrame
     """
     cvals = self.fillna(0).values.ravel().copy()
 
@@ -119,4 +137,3 @@ def background(self, scale='Linear', cmap='RdYlGn', **css):
 def pp(X: pd.DataFrame):
     """Pretty print pandas dataframe"""
     return X.style.apply(background, axis=None)
-
