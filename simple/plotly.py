@@ -91,7 +91,7 @@ def updateLines(fig: go.FigureWidget, **line_data):
             k = names.index(line_name)
             line = line_data[line_name]
             if type(line) == dict:
-                fig.hf_data[k]['x'] = line['x']
+                fig.hf_data[k]['x'] = line.get('x', np.arange(len(line['y'])))
                 fig.hf_data[k]['y'] = line['y']
             else:
                 fig.hf_data[k]['x'] = np.arange(len(line))
