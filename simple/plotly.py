@@ -33,7 +33,7 @@ def addLines(fig: go.FigureWidget, **line_styles):
             for param_name in line:
                 fig.layout[param_name] = line[param_name]
         else:
-            line_class = Marker if line.get('mode') == 'markers' else Line
+            line_class = Marker if line.get('mode') == 'markers' else go.Candlestick if line.get('mode') == 'candlestick' else Line
             trace_dict = {}  # parameters not belong to the Line will be moved to upper-levels
             scatter_dict = {}
             line_dict = {}
@@ -50,7 +50,11 @@ def addLines(fig: go.FigureWidget, **line_styles):
                 scatter_dict[name] = line_dict
             if 'row' in trace_dict and 'col' not in trace_dict:
                 trace_dict['col'] = 1
-            fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
+
+            if line_class == go.Candlestick:
+                fig.add_candlestick(name=line_name, **line_dict)
+            else:
+                fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
 def chartFigure(height: int = default_height, rows: int = 1, template: str = default_template, **lines) -> go.FigureWidget:
@@ -77,6 +81,9 @@ def chartFigure(height: int = default_height, rows: int = 1, template: str = def
     if rows > 1:
         fig.update_xaxes(spikemode='across+marker', spikedash='dot', spikethickness=2, spikesnap='cursor')
         fig.update_traces(xaxis=f'x{rows}')
+
+    for i in range(rows, 0, -1):  # disable all rangesliders
+        fig.update_xaxes(row=i, col=1, rangeslider_visible=False)
 
     return fig
 

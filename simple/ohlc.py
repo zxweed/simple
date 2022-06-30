@@ -42,7 +42,7 @@ def resampleVolume(T: NDArray[TTrade], threshold: int, OHLC: NDArray[TOHLC]) -> 
         c += 1
         size = count = 0
 
-    return c
+    return c-1
 
 
 def getStepPrice(Price: NDArray[float]) -> float:
