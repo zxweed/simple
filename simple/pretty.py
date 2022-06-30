@@ -84,10 +84,13 @@ def prun(indicator: callable, src, period: int, threads: int = cpu_count(), prog
 
     # store all slices to the result series
     result = np.zeros(len(src))
-    for k, x in zip(result_indexes, X):
-        result[k:k + page_size] = x[period:]
+    for page_start, x in zip(result_indexes, X):
+        m = page_start + page_size
+        page_stop = m if m < len(result) else len(result)
+        result[page_start:page_stop] = x[period:]
 
-    result[:period] = np.nan
+    # fill prefix with first value
+    result[:period] = result[period]
     return result
 
 
