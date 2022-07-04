@@ -52,6 +52,8 @@ def addLines(fig: go.FigureWidget, **line_styles):
                 trace_dict['col'] = 1
 
             if line_class == go.Candlestick:
+                if 'x' not in line_dict:
+                    line_dict['x'] = np.arange(len(line_dict['open']))
                 fig.add_candlestick(name=line_name, **line_dict)
             else:
                 fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
