@@ -140,7 +140,10 @@ def JCFB(SrcA: np.array, degree: int, Smooth: int) -> np.array:
             result = 0 if sq == 0 else sqw / sq
 
         Result[Bar] = result
-
+        
+    # clear initial (unstable) data
+    k = int(max(lags)*1.2)
+    Result[:k] = Result[k]
     return Result
 
 
