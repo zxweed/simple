@@ -277,3 +277,34 @@ def hurst(X: np.array) -> float:
     # Use a linear fit to estimate the Hurst Exponent
     fit = np.polyfit(np.log(lags), np.log(tau), 1)
     return fit[0]
+
+@njit
+def varIndex(OHLC, N):
+    period = int(pow(2, N))
+    MathLogX2 = np.log(2.0)
+    result = np.zeros(len(OHLC))
+
+    for bar in range(period-1, len(OHLC)):
+        Sx = Sy = Sxx = Sxy = 0
+        for i in range(N+1):
+            Delta = 0
+            nInterval = int(pow(2, N - i))
+
+            # summing the difference between the maximum and minimum prices on the interval
+            for k in range(pow(2, i)):
+                p = bar - nInterval * k + 1
+                High = np.max(OHLC['High'][p - nInterval: p])
+                Low = np.min(OHLC['Low'][p - nInterval: p])
+                Delta += High-Low
+
+            # calculate variation coordinates in a log - log scale
+            Xc = (N - i) * MathLogX2
+            Yc = np.log(Delta)
+            Sx += Xc
+            Sy += Yc
+            Sxx += Xc * Xc
+            Sxy += Xc * Yc
+
+        # calculating the variation index(regression slope ratio)
+        result[bar] = -(Sx * Sy - N * Sxy) / (Sx * Sx - N * Sxx)
+    return result

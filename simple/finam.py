@@ -26,10 +26,11 @@ def getOHLC(em, market, period, start_date, end_date) -> pd.DataFrame:
         ('df', start_date.day), ('mf', start_date.month - 1), ('yf', start_date.year),
         ('dt', end_date.day), ('mt', end_date.month - 1), ('yt', end_date.year),
         ('p', period), ('dtf', 1), ('tmf', 3), ('sep', 3), ('sep2', 1), ('datf', 5),
-        ('at', 1)
+        ('at', 1),   # include headers=1
+        ('MSOR', 0)  # 1 for close time, 0 for open time
     ])
 
-    #print(url_addr + params, start_date, end_date)
+    print(url_addr + params, start_date, end_date)
     resp = requests.get(url_addr + params, headers=hdr)
 
     OHLC = pd.read_csv(StringIO(resp.text), header=0, sep=';', parse_dates=[[0, 1]], date_parser=parser, index_col=0)
@@ -54,8 +55,8 @@ def getTick(em, market, start_date, end_date) -> pd.DataFrame:
         ])
 
         try:
-            #print(url_addr + params, day)
-            print(day, end=' ')
+            # print(url_addr + params, day)
+            # print(day, end=' ')
             data = pd.read_csv(url_addr + params, header=0, sep=';', parse_dates=[[1, 2]], date_parser=parser, index_col=0)
             data.columns = ['Ticker', 'Last', 'Volume']
             del data['Ticker']
