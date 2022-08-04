@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from numba import njit
 from joblib import Parallel, delayed
-from simple.types import TTrade, TDebounce
+from simple.types import TTrade, TDebounce, TDebounceSpread
 from numpy.typing import NDArray
 
 
@@ -311,11 +311,13 @@ def varIndex(OHLC, N):
 
 
 @njit(nogil=True)
-def getSpread(ts: NDArray, A: NDArray, B: NDArray, C: NDArray[TDebounce]):
-    spread = np.zeros(len(C))
+def getSpread(ts: NDArray, A: NDArray, B: NDArray, C: NDArray[TDebounce]) -> NDArray[TDebounceSpread]:
+    R = np.zeros(len(C), dtype=TDebounceSpread)
     for c in range(len(C)):
         t0 = C[c].DT
         t1 = t0 + C[c].Duration
         p0, p1 = np.searchsorted(ts, t0), np.searchsorted(ts, t1)
-        spread[c] = (A[p0:p1] - B[p0:p1]).mean() if p1 > p0 else 0
-    return spread
+        R.Mean[c] = (A[p0:p1] - B[p0:p1]).mean() if p1 > p0 else 0
+        R.Ask[c] = A[p0]
+        R.Bid[c] = B[p0]
+    return R
