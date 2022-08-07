@@ -56,7 +56,7 @@ class GridOpt(Opt):
         X = product(*(inclusive_range(*v) for v in self.defaults.values()))
         grid = [dict(zip(self.args, x)) for x in X]
 
-        with tqdmParallel(total=len(grid), backend='multiprocessing') as P:
+        with tqdmParallel(total=len(grid), require='sharedmem') as P:
             FUNC = delayed(self.target)
             log = P(FUNC(**arg) for arg in grid)
 
