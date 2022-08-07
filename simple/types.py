@@ -40,6 +40,14 @@ TDebounce = np.dtype([
     ('SellCount', int)
 ])
 
+TDebounceSpread = np.dtype([
+    ('Ask', float),
+    ('Bid', float),
+    ('Mean', float),
+    ('AskLiq', float),
+    ('BidLiq', float)
+])
+
 # Paired trade record structure
 TPairTrade = [
     ('X0', np.int64), ('T0', 'M8[us]'), ('Price0', float), ('MidPrice0', float),

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from numba import njit
 from joblib import Parallel, delayed
-from simple.types import TTrade
+from simple.types import TTrade, TDebounce, TDebounceSpread
 from numpy.typing import NDArray
 
 
@@ -143,7 +143,7 @@ def vwap(T: NDArray[TTrade], period: int, destA: np.array = None) -> NDArray[flo
     return destA
 
 
-@njit
+@njit(nogil=True)
 def cwma(source: np.ndarray, period: int) -> np.ndarray:
     """Cubed Weighted Moving Average"""
     result = np.zeros_like(source)
@@ -161,7 +161,7 @@ def cwma(source: np.ndarray, period: int) -> np.ndarray:
     return result
 
 
-@njit
+@njit(nogil=True)
 def epma(source: np.ndarray, period: int, offset: int = 0) -> np.ndarray:
     result = np.zeros_like(source)
     k = period + offset + 1
@@ -284,7 +284,7 @@ def hurst(X: np.array) -> float:
     fit = np.polyfit(np.log(lags), np.log(tau), 1)
     return fit[0]
 
-@njit
+@njit(nogil=True)
 def varIndex(OHLC, N):
     period = int(pow(2, N))
     MathLogX2 = np.log(2.0)
@@ -314,3 +314,16 @@ def varIndex(OHLC, N):
         # calculating the variation index(regression slope ratio)
         result[bar] = -(Sx * Sy - N * Sxy) / (Sx * Sx - N * Sxx)
     return result
+
+
+@njit(nogil=True)
+def getSpread(ts: NDArray, A: NDArray, B: NDArray, C: NDArray[TDebounce]) -> NDArray[TDebounceSpread]:
+    R = np.zeros(len(C), dtype=TDebounceSpread)
+    for c in range(len(C)):
+        t0 = C[c].DT
+        t1 = t0 + C[c].Duration
+        p0, p1 = np.searchsorted(ts, t0), np.searchsorted(ts, t1)
+        R.Mean[c] = (A[p0:p1] - B[p0:p1]).mean() if p1 > p0 else 0
+        R.Ask[c] = A[p0]
+        R.Bid[c] = B[p0]
+    return R
