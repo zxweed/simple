@@ -99,7 +99,7 @@ def cPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
 
 
 @njit(nogil=True)
-def tickSpeed(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
+def tickSpeed(T: NDArray[TTrade], period: int = 1000, log: bool = False) -> NDArray[float]:
     """Tick speed indicator (change of price in dollars per second)"""
     resultA = np.zeros(len(T), dtype=np.float32)
     resultA[:period] = np.nan
@@ -109,6 +109,12 @@ def tickSpeed(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
         t0, t1 = T.DT[k], T.DT[i]
         delta = np.int64(t1 - t0)
         resultA[i] = (T.Price[i] - T.Price[k]) * 1e6 / delta if delta > 0 else 0
+        
+        if log:
+            if resultA[i] > 1:
+                resultA[i] = np.log(resultA[i]) + 1
+            elif resultA[i] < -1:
+                resultA[i] = -np.log(-resultA[i]) - 1
 
     return resultA
 
