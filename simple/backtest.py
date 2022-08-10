@@ -15,7 +15,7 @@ trade_type = Tuple((int64, int64, float64, float64, int64, int64, float64, float
 
 
 @njit(nogil=True)
-def backtestMarket(ts, A, B, signal, threshold, delay=default_delay, maxpos=1) -> List[trade_type]:
+def backtestMarket(ts, A, B, signal, threshold, delay=default_delay, maxpos=1, hold=None) -> List[trade_type]:
     """Fast&simple vectorized backtester for market orders"""
 
     buys = List.empty_list(signal_type)
@@ -25,12 +25,18 @@ def backtestMarket(ts, A, B, signal, threshold, delay=default_delay, maxpos=1) -
 
     for i in range(len(ts) - 1):
         delta_pos: int = 0
-
+            
         # Conditions for open position
         if signal[i] > threshold:
             delta_pos = min(maxpos - pos, 1)
         elif signal[i] < -threshold:
             delta_pos = -min(maxpos + pos, 1)
+
+        # Check for position hold if specified
+        if hold is not None:
+            last_ts = buys[-1][1] if len(buys) > 0 else sells[-1][1] if len(sells) > 0 else 0
+            if last_ts > 0 and ts[i] > last_ts + hold:
+                delta_pos = -pos
 
         # Find delayed price index for open position
         k = i + 1
@@ -80,10 +86,10 @@ def npTrades(trades: List) -> NDArray[TPairTrade]:
     return np.array(trades, dtype=TPairTrade).view(np.recarray)
 
 
-def npBacktestMarket(ts, A, B, signal, threshold, delay=default_delay, maxpos=1) -> NDArray[TPairTrade]:
+def npBacktestMarket(ts, A, B, signal, threshold, delay=default_delay, maxpos=1, hold=None) -> NDArray[TPairTrade]:
     """Converts trades from the IOC-backtester to structured array"""
 
-    return npTrades(backtestMarket(usInt(ts), A, B, signal, threshold, delay=delay, maxpos=maxpos))
+    return npTrades(backtestMarket(usInt(ts), A, B, signal, threshold, delay=delay, maxpos=maxpos, hold=hold))
 
 
 @njit(nogil=True)
