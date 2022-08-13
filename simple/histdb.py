@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 from datetime import datetime, date
 import MySQLdb
-import os, zlib
+import os, zlib, time, random
 from contextlib import closing
 from tqdm.auto import tqdm
 from joblib import Parallel, delayed, cpu_count
@@ -38,7 +38,7 @@ def connect():
                                    passwd=os.environ['HISTDB_PASSWORD'],
                                    unix_socket=socket)
         except Exception as E:
-            print(E, '.reconnect', end='', flush=True)
+            print(repr(E), end=' ', flush=True)
             time.sleep(random.randint(1, 5))
 
 
@@ -47,7 +47,7 @@ def getTickerID(ticker: str) -> int:
     Returns ID by ticker
 
     :param ticker: ticker
-    :return: ID 
+    :return: ID
     """
 
     with closing(connect()) as db:
