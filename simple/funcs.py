@@ -327,3 +327,16 @@ def getSpread(ts: NDArray, A: NDArray, B: NDArray, C: NDArray[TDebounce]) -> NDA
         R.Ask[c] = A[p0]
         R.Bid[c] = B[p0]
     return R
+
+
+@njit(nogil=True)
+def turn(signal: NDArray[float], threshold: float) -> NDArray[float]:
+    result = np.zeros(len(signal))
+    for i in range(1, len(signal)):
+        k = i - 1
+        if signal[i] < signal[k] and signal[i] > threshold:
+            result[i] = -1
+        elif signal[i] > signal[k] and signal[i] < -threshold:
+            result[i] = 1
+        
+    return result
