@@ -7,7 +7,7 @@ from contextlib import closing
 from tqdm.auto import tqdm
 from joblib import Parallel, delayed, cpu_count
 from simple.pretty import tqdmParallel
-
+from simple.types import TTrade
 
 
 # Base for time format conversion
@@ -113,19 +113,19 @@ def npTradeT(tickerID: any, startDate: date = None, endDate: date = None, progre
             if (len(buf) - 8) // 8 == count:
                 return np.frombuffer(buf, float, count, offset=8)
 
-    TradeT = np.zeros(0, dtype=[('DateTimeA', 'M8[us]'), ('LocalTimeA', 'M8[us]'), ('PriceA', float), ('VolumeA', float), ('OpenIntA', float)])
+    TradeT = np.zeros(0, dtype=TTrade)
     for f in tqdm(cur.fetchall()) if progress else cur.fetchall():
         buf = zlib.decompress(f[0])
         count = (len(buf) - 8) // 8
 
         k = len(TradeT)
         TradeT.resize(k + count, refcheck=False)
-        TradeT['DateTimeA'][k:] = (np.frombuffer(buf, float, count, offset=8) * US - BASE_US).astype('M8[us]')
+        TradeT['DT'][k:] = (np.frombuffer(buf, float, count, offset=8) * US - BASE_US).astype('M8[us]')
         TM = fromBuf(f[1], count)
-        TradeT['LocalTimeA'][k:] = (TM * US - BASE_US).astype('M8[us]') if f[1] is not None and TM is not None else None
-        TradeT['PriceA'][k:] = fromBuf(f[2], count)
-        TradeT['VolumeA'][k:] = fromBuf(f[3], count)
-        TradeT['OpenIntA'][k:] = fromBuf(f[4], count)
+        TradeT['LocalDT'][k:] = (TM * US - BASE_US).astype('M8[us]') if f[1] is not None and TM is not None else None
+        TradeT['Price'][k:] = fromBuf(f[2], count)
+        TradeT['Size'][k:] = fromBuf(f[3], count)
+        TradeT['OpenInt'][k:] = fromBuf(f[4], count)
 
     return TradeT.view(np.recarray)
 
