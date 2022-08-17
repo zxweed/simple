@@ -157,6 +157,17 @@ def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bo
     return P
 
 
+def getProfitDict(P):
+    return {
+        'Count': len(P),
+        'AvgMid': P.MidPnL.mean() if len(P) > 0 else 0,
+        'RawPnL': P.RawPnL.sum() if len(P) > 0 else 0,
+        'Fee': P.Fee.sum() if len(P) > 0 else 0,
+        'MidPnL': P.MidPnL.sum() if len(P) > 0 else 0,
+        'Sharpe': P.Profit.sum() / P.Profit.std() if len(P) > 1 else 0
+     }
+
+
 def getLong(trades: NDArray[TPairTrade]) -> dict:
     """Returns long trades only in dictionary format"""
 
