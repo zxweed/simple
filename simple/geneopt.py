@@ -21,7 +21,7 @@ class Opt:
         self.target = target.__wrapped__ if hasattr(target, '__wrapped__') else target
         spec = inspect.getfullargspec(self.target)
         self.args = spec.args
-        self.log_columns = self.args + ['Fitness']
+        self.log_columns = self.args
         self.annotations = spec.annotations
         defaults = [] if spec.defaults is None else reversed(spec.defaults)
         self.defaults = dict(reversed(list(zip_longest(reversed(self.args), defaults, fillvalue=100))))
@@ -60,8 +60,8 @@ class GridOpt(Opt):
             FUNC = delayed(self.target)
             log = P(FUNC(**arg) for arg in grid)
 
-        self.log_columns += list(log[0][1].keys())
-        self.log = [(*x.values(), r[0], *r[1].values()) for x, r in zip(grid, log)]
+        self.log_columns += list(log[0][0].keys())
+        self.log = [(*x.values(), *r[0].values()) for x, r in zip(grid, log)]
         return max([x[0] for x in self.log])
 
 
