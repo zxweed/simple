@@ -56,12 +56,12 @@ class GridOpt(Opt):
         X = product(*(inclusive_range(*v) for v in self.defaults.values()))
         grid = [dict(zip(self.args, x)) for x in X]
 
-        with tqdmParallel(total=len(grid), require='sharedmem') as P:
+        with tqdmParallel(total=len(grid), backend='multiprocessing') as P:
             FUNC = delayed(self.target)
             log = P(FUNC(**arg) for arg in grid)
 
-        self.log_columns += list(log[0][0].keys())
-        self.log = [(*x.values(), *r[0].values()) for x, r in zip(grid, log)]
+        self.log_columns += list(log[0].keys())
+        self.log = [(*x.values(), *r.values()) for x, r in zip(grid, log)]
         return max([x[0] for x in self.log])
 
 
@@ -84,7 +84,8 @@ class GeneOpt(Opt):
         return [self.genRandom(arg) for arg in self.args]
 
     def evalOneMax(self, individual):
-        return self.target(*individual),
+        result_dict = self.target(*individual)
+        return result_dict['Profit'],
 
     def maximize(self, population_size=128, generations=5, callback: callable = None):
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))

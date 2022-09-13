@@ -130,7 +130,7 @@ def interactFigure(model: callable, height: int = default_height, rows: int = 1,
     fig = chartFigure(height=height, rows=rows, template=template, **line_styles)
 
     def update(**arg):
-        updateLines(fig, **model(**arg)[1])
+        updateLines(fig, **model(**arg))
 
     sliders = interactive(update, **defaults).children[:-1]
 
@@ -157,7 +157,7 @@ def interactTable(model: callable, X: pd.DataFrame, height: int = default_height
         updateSliders(sliders, **param)
 
         fig = box.children[1]
-        updateLines(fig, **model(**param)[1])
+        updateLines(fig, **model(**param))
 
     grid = show_grid(X, grid_options={'editable': False, 'forceFitColumns': True, 'multiSelect': False},
                      column_options={'defaultSortAsc': False})
