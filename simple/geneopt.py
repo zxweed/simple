@@ -85,7 +85,7 @@ class GeneOpt(Opt):
 
     def evalOneMax(self, individual):
         result_dict = self.target(*individual)
-        return result_dict['Profit'],
+        return result_dict,
 
     def maximize(self, population_size=128, generations=5, callback: callable = None):
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -114,18 +114,17 @@ class GeneOpt(Opt):
 
                 for fit, ind in zip(fits, offspring):
                     f = fit[0]   # fitness value is tuple always
-                    if type(f) == tuple:
-                        fitness_value, result = f
+                    if type(f) == dict:
+                        fitness_value = f['Profit'] if 'Profit' in f else 0
                         fitness_tuple = (fitness_value,)
-                        if type(result) == dict:
-                            # only ordinal typed items stored in the log list
-                            filtered_dict = dict(filter(lambda x: type(x[1]) in [str, int, float, np.float64], result.items()))
-                            self.log_columns += list(filter(lambda x: x not in self.log_columns, filtered_dict))
-                            self.log.append((*ind, fitness_value, *filtered_dict.values()))
-                        else:
-                            self.log.append((*ind, *f))
+
+                        # only ordinal typed items stored in the log list
+                        filtered_dict = dict(filter(lambda x: type(x[1]) in [str, int, float, np.float64], f.items()))
+                        self.log_columns += list(filter(lambda x: x not in self.log_columns, filtered_dict))
+                        self.log.append((*ind, *filtered_dict.values()))
+
                     else:
-                        fitness_tuple = fit
+                        fitness_tuple = f,
                         self.log.append((*ind, f))
 
                     ind.fitness.values = fitness_tuple
