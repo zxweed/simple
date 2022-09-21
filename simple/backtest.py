@@ -114,9 +114,9 @@ def backtestLimit(T: NDArray[TTrade], qA: NDArray[float], qB: NDArray[float]) ->
 
         k = i + 1
         if delta_pos > 0:
-            buys.append((k, ts[k], qB[k], qB[k]))
+            buys.append((k, ts[k], qB[i], qB[i]))
         elif delta_pos < 0:
-            sells.append((k, ts[k], qA[k], qA[k]))
+            sells.append((k, ts[k], qA[i], qA[i]))
 
         if len(sells) > 0 and len(buys) > 0:
             buy = buys.pop(0)
