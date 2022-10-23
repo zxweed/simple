@@ -1,6 +1,11 @@
 import numpy as np
 
 # Tick trade record structure
+TShortTrade = np.dtype([
+    ('DT', 'M8[us]'),
+    ('Price', 'f8'),
+    ('Size', 'f8')])
+
 TTrade = np.dtype([
     ('DT', 'M8[us]'),
     ('LocalDT', 'M8[us]'),
