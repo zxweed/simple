@@ -7,6 +7,7 @@ import inspect
 from psutil import cpu_percent
 from datetime import datetime, timedelta
 import matplotlib as mpl
+from itertools import product
 
 
 class tqdmParallel(Parallel):
@@ -47,6 +48,26 @@ def pmap(func: callable, params, **kwargs):
 
 tpl = lambda x: x if isinstance(x, tuple) else tuple(x.values()) if isinstance(x, dict) else (x,)
 """Convert value/dict to tuple"""
+
+
+def iterable(obj):
+    if type(obj) == str:
+        return False
+
+    try:
+        iter(obj)
+        return True
+    except:
+        return False
+
+
+def starmap(func: callable, *args, **kwargs):
+    """Parallel starmap implementation via tqdmParallel"""
+
+    param_list = list(product(*(p if iterable(p) else [p] for p in args)))
+    with tqdmParallel(total=len(param_list), **kwargs) as P:
+        FUNC = delayed(func)
+        return P(FUNC(*tpl(param)) for param in param_list)  
 
 
 def pxmap(func: callable, param, **kwargs):
