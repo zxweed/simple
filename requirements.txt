@@ -3,7 +3,7 @@ pandas
 tables
 numba
 plotly
-ipywidgets
+ipywidgets==7.6.5
 joblib
 tqdm
 ipyslickgrid==0.0.3
