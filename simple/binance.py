@@ -68,7 +68,7 @@ def _OHLC(tm, ticker, interval):
         return df
 
 
-def getOHLC(tm, ticker, interval, startTime):
+def getOHLC(tm, ticker, interval):
     url = api.format(ticker=ticker, interval=interval, startTime=int(tm.timestamp() * 1000))
     df = pd.DataFrame(get(url).json())
     if len(df) > 0:
