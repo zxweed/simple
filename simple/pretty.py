@@ -39,8 +39,13 @@ class tqdmParallel(Parallel):
             self._lasttime = datetime.now()
 
 
+def tpl(x):
+    """Convert value/dict to tuple"""
+    return x if isinstance(x, tuple) else tuple(x.values()) if isinstance(x, dict) else (x,)
+
+
 def plist(*args):
-    """Creates product parameter list from bunch of iterables/values"""
+    """Creates product parameter list from a bunch of iterables/values"""
     return list(product(*(p if iterable(p) else [p] for p in args)))
 
 
@@ -51,10 +56,6 @@ def pmap(func: callable, *args, **kwargs):
     with tqdmParallel(total=len(param_list), **kwargs) as P:
         FUNC = delayed(func)
         return P(FUNC(*tpl(param)) for param in param_list)
-
-
-tpl = lambda x: x if isinstance(x, tuple) else tuple(x.values()) if isinstance(x, dict) else (x,)
-"""Convert value/dict to tuple"""
 
 
 def iterable(obj):
@@ -157,10 +158,10 @@ def background(self, scale='Linear', cmap='RdYlGn', **css) -> pd.DataFrame:
 
 
 def hline(row, color='black', width='1px'):
-    return [f"border-bottom: {width} solid {color};" for _ in row]
+    return [f'border-bottom: {width} solid {color};' for _ in row]
 
 
-def pp(X: pd.DataFrame, float_format: str = None, h_subset = None) -> Styler:
+def pp(X: pd.DataFrame, float_format: str = None, h_subset=None) -> Styler:
     """Pretty print pandas dataframe with ability to stroke some cells"""
 
     if float_format is None:
