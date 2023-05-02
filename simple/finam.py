@@ -35,7 +35,7 @@ def getOHLC(em, market, period, start_date, end_date) -> pd.DataFrame:
 
     OHLC = pd.read_csv(StringIO(resp.text), header=0, sep=';', parse_dates=[[0, 1]], date_parser=parser, index_col=0)
     OHLC.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
-    OHLC.index.names = ['DT']
+    OHLC.index.names = ['DateTime']
     return OHLC
 
 
@@ -60,7 +60,7 @@ def getTick(em, market, start_date, end_date) -> pd.DataFrame:
             data = pd.read_csv(url_addr + params, header=0, sep=';', parse_dates=[[1, 2]], date_parser=parser, index_col=0)
             data.columns = ['Ticker', 'Last', 'Volume']
             del data['Ticker']
-            data.index.names = ['DT']
+            data.index.names = ['DateTime']
             T = T.append(data)
 
         except Exception as E:

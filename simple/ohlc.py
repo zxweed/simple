@@ -26,7 +26,7 @@ def resampleVolume(T: NDArray[TTrade], threshold: int, OHLC: NDArray[TOHLC]) -> 
                 sellSize += T.Size[t]
                 sellCount += 1
 
-        OHLC['DT'][c] = T.DT[t]
+        OHLC['DateTime'][c] = T.DateTime[t]
         OHLC['Open'][c] = open
         OHLC['High'][c] = high
         OHLC['Low'][c] = low
@@ -78,7 +78,7 @@ def _isclose(x, y, rtol=1e-05, atol=1e-08, equal_nan=False):
 def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDebounce]) -> int:
     t = c = 0
     DebA.Price[c] = MidA[t]
-    DebA.DT[c] = T.DT[t]
+    DebA.DateTime[c] = T.DateTime[t]
 
     while t < len(MidA):
         while t < len(MidA) and _isclose(MidA[t], DebA.Price[c]):
@@ -91,14 +91,14 @@ def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDe
                 DebA.SellCount[c] += 1
                 DebA.SellSize[c] += T.Size[t]
 
-            DebA.Duration[c] = T.DT[t] - DebA.DT[c]
+            DebA.Duration[c] = T.DateTime[t] - DebA.DateTime[c]
             t += 1
 
-        DebA.DT[c] = T.DT[t]
+        DebA.DateTime[c] = T.DateTime[t]
         c += 1
         if t < len(MidA):   # prepare the next candle if available
             DebA.Price[c] = MidA[t]
-            DebA.DT[c] = T.DT[t]
+            DebA.DateTime[c] = T.DateTime[t]
             DebA.Index[c] = c
 
     return c
@@ -163,7 +163,7 @@ def tickVolume(T: NDArray[TTrade], threshold: int) -> np.array:
     OHLC = np.zeros(len(T), dtype=TOHLC)
     c = resampleVolume(T, threshold, OHLC)
     OHLC.resize(c, refcheck=False)
-    return OHLC[['DT', 'Close']].view(np.recarray)
+    return OHLC[['DateTime', 'Close']].view(np.recarray)
 
 
 @njit

@@ -106,7 +106,7 @@ def tickSpeed(T: NDArray[TTrade], period: int = 1000, log: bool = False) -> NDAr
 
     for i in range(period, len(T), 1):
         k = i - period
-        t0, t1 = T.DT[k], T.DT[i]
+        t0, t1 = T.DateTime[k], T.DateTime[i]
         delta = np.int64(t1 - t0)
         resultA[i] = (T.Price[i] - T.Price[k]) * 1e6 / delta if delta > 0 else 0
         
@@ -320,7 +320,7 @@ def varIndex(OHLC, N):
 def getSpread(ts: NDArray, A: NDArray, B: NDArray, C: NDArray[TDebounce]) -> NDArray[TDebounceSpread]:
     R = np.zeros(len(C), dtype=TDebounceSpread)
     for c in range(len(C)):
-        t0 = C[c].DT
+        t0 = C[c].DateTime
         t1 = t0 + C[c].Duration
         p0, p1 = np.searchsorted(ts, t0), np.searchsorted(ts, t1)
         R.Mean[c] = (A[p0:p1] - B[p0:p1]).mean() if p1 > p0 else 0

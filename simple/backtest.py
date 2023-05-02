@@ -99,7 +99,7 @@ def backtestLimit(T: NDArray[TTrade], qA: NDArray[float], qB: NDArray[float]) ->
     buys = List.empty_list(signal_type)
     sells = List.empty_list(signal_type)
     trades = List.empty_list(trade_type)
-    ts = T.DT.view(np.int64)
+    ts = T.DateTime.view(np.int64)
     pos: int = 0
 
     for i in range(len(ts) - 1):
@@ -152,7 +152,7 @@ def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bo
 
     P.Profit = P.RawPnL - P.Fee
     P.Index = trades.X1
-    P.DT = trades.T1.astype('M8[us]')
+    P.DateTime = trades.T1.astype('M8[us]')
 
     return P
 

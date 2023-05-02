@@ -22,12 +22,12 @@ def _HistOHLC(month, ticker, frame, close_only=False, spot=False):
             url = hist_fut_api.format(month=month, ticker=ticker, frame=frame)
 
         x = pd.read_csv(url, header=None,
-                        names=['DT', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT', 'BaseVolume',
+                        names=['DateTime', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT', 'BaseVolume',
                                'TradeCount', 'TakerBase', 'TakerQuote', 'Ignore'])
 
-        x.DT = x.DT.astype('M8[ms]')
+        x.DateTime = x.DateTime.astype('M8[ms]')
         x.CloseDT = x.CloseDT.astype('M8[ms]')
-        x.set_index('DT', inplace=True)
+        x.set_index('DateTime', inplace=True)
         x.name = ticker
         return x[['Close']].rename(columns={'Close': ticker}) if close_only else x
     except Exception as E:

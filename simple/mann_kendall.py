@@ -1,4 +1,4 @@
-"""ported from pyMannKendall: a python package for non parametric Mann Kendall family of trend tests"""
+"""ported from pyMannKendall: a python package for non-parametric Mann Kendall family of trend tests"""
 import numpy as np
 from numba import njit
 

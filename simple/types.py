@@ -1,21 +1,21 @@
 import numpy as np
 
-# Tick trade record structure
+# Tick trade record structure (short and long versions)
 TShortTrade = np.dtype([
-    ('DT', 'M8[us]'),
+    ('DateTime', 'M8[us]'),
     ('Price', 'f8'),
     ('Size', 'f8')])
 
 TTrade = np.dtype([
-    ('DT', 'M8[us]'),
+    ('DateTime', 'M8[us]'),
     ('LocalDT', 'M8[us]'),
     ('Price', float),
     ('Size', float),
     ('OpenInt', float)])
 
-# Candle record structure
+# Candle record structure with additional aggressive sum/count fields
 TOHLC = np.dtype([
-    ('DT', '<M8[us]'),
+    ('DateTime', 'M8[us]'),
     ('Open', float),
     ('High', float),
     ('Low', float),
@@ -31,10 +31,10 @@ TOHLC = np.dtype([
 
 # Debounced timeseries record structure
 TDebounce = np.dtype([
-    ('DT', '<M8[us]'),
+    ('DateTime', 'M8[us]'),
     ('Index', int),
     ('Price', float),
-    ('Duration', '<m8[us]'),
+    ('Duration', 'M8[us]'),
 
     ('Size', float),
     ('BuySize', float),
@@ -62,7 +62,7 @@ TPairTrade = [
 # Profit record structure
 TProfit = [
     ('Index', np.int64),
-    ('DT', 'M8[us]'),
+    ('DateTime', 'M8[us]'),
     ('RawPnL', float),
     ('MidPnL', float),
     ('Fee', float),
