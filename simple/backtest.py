@@ -1,13 +1,17 @@
+import pandas as pd
 import numpy as np
+from numpy.typing import NDArray
+
 from numba import njit
 from numba.typed import List
 from numba.types import int64, float64, Tuple
+
 from simple.types import TTrade, TPairTrade, TProfit
-from numpy.typing import NDArray
+from simple.pretty import pmap
 
 
 fp32 = np.float32
-default_fee = 0.05
+default_fee = 0.015
 default_delay = 1000
 
 signal_type = Tuple((int64, int64, float64, float64))
@@ -15,7 +19,7 @@ trade_type = Tuple((int64, int64, float64, float64, int64, int64, float64, float
 
 
 @njit(nogil=True)
-def backtestMarket(ts, A, B, signal, threshold, delay=default_delay, maxpos=1, hold=None) -> List[trade_type]:
+def backtestMarket(ts, A, B, signal, threshold, maxpos=1, hold=None) -> List[trade_type]:
     """Fast&simple vectorized backtester for market orders"""
 
     buys = List.empty_list(signal_type)
@@ -41,11 +45,11 @@ def backtestMarket(ts, A, B, signal, threshold, delay=default_delay, maxpos=1, h
         # Find delayed price index for open position
         k = i + 1
         if delta_pos > 0:
-            while k < len(ts) - 1 and A[i] == A[k] and ts[k] - ts[i] < delay:
+            while k < len(ts) - 1 and A[i] == A[k] and ts[k] - ts[i] < default_delay:
                 k += 1
 
         elif delta_pos < 0:
-            while k < len(ts) - 1 and B[i] == B[k] and ts[k] - ts[i] < delay:
+            while k < len(ts) - 1 and B[i] == B[k] and ts[k] - ts[i] < default_delay:
                 k += 1
 
         # There can be more than one position (until maxpos reached)
@@ -72,9 +76,11 @@ def backtestMarket(ts, A, B, signal, threshold, delay=default_delay, maxpos=1, h
 def usInt(ts) -> np.ndarray:
     """Convert time series to microseconds"""
 
-    if ts.dtype == np.dtype('<M8[us]'):
+    if ts.dtype == np.dtype('M8[us]'):
         return ts.astype(np.int64)
-    elif ts.dtype == np.dtype('<M8[ns]'):
+    elif ts.dtype == np.dtype('M8[ms]'):
+        return ts.astype(np.int64) * 1000
+    elif ts.dtype == np.dtype('M8[ns]'):
         return ts.astype(np.int64)//1000
     else:
         return ts
@@ -86,10 +92,10 @@ def npTrades(trades: List) -> NDArray[TPairTrade]:
     return np.array(trades, dtype=TPairTrade).view(np.recarray)
 
 
-def npBacktestMarket(ts, A, B, signal, threshold, delay=default_delay, maxpos=1, hold=None) -> NDArray[TPairTrade]:
+def npBacktestMarket(ts, A, B, signal, threshold, maxpos=1, hold=None) -> NDArray[TPairTrade]:
     """Converts trades from the IOC-backtester to structured array"""
 
-    return npTrades(backtestMarket(usInt(ts), A, B, signal, threshold, delay=delay, maxpos=maxpos, hold=hold))
+    return npTrades(backtestMarket(usInt(ts), A, B, signal, threshold, maxpos=maxpos, hold=hold))
 
 
 @njit(nogil=True)
@@ -155,6 +161,42 @@ def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bo
     P.DateTime = trades.T1.astype('M8[us]')
 
     return P
+
+
+def pdThresholdMarket(ts, A, B, signal2D, maxpos=1, inversed=True) -> pd.DataFrame:
+    """Parallel evaluation of thresholds*signals by 2D-grid"""
+
+    TS = usInt(ts)
+    ask = A[0] if len(A.shape) == 2 else A
+    bid = B[0] if len(B.shape) == 2 else B
+
+    @njit(nogil=True)
+    def internalProfit(param):
+        """Calculates profit metrics"""
+
+        level, index, threshold = param
+        trades = backtestMarket(TS, ask, bid, signal2D[level], threshold, maxpos=maxpos)
+        if inversed:
+            rawPnL = sum([(1 / t[2] - 1 / t[6]) * t[8] for t in trades]) * 1000
+            midPnL = sum([(1 / t[3] - 1 / t[7]) * t[8] for t in trades]) * 1000
+            fee = default_fee / 100 * sum([abs(t[8] / t[2] + t[8] / t[6]) for t in trades]) * 1000
+        else:
+            rawPnL = sum([(t[6] - t[2]) * t[8] for t in trades])
+            midPnL = sum([(t[7] - t[3]) * t[8] for t in trades])
+            fee = default_fee / 100 * sum([(t[2] + t[6]) * abs(t[8]) for t in trades])
+        return rawPnL, midPnL, rawPnL - fee, fee, len(trades), trades
+
+    # create parameter grid
+    Thresholds = [np.linspace(0, np.percentile(np.abs(y), 99.98), 100) for y in signal2D]
+    Levels = range(len(signal2D))
+    Param = [(level, index, threshold) for level, thresholds in zip(Levels, Thresholds) for index, threshold in enumerate(thresholds)]
+
+    X = pmap(internalProfit, Param, require='sharedmem')
+
+    # result as DataFrame
+    F = pd.DataFrame(Param).join(pd.DataFrame(X), rsuffix='_')
+    F.columns = ['Level', 'Index', 'Threshold', 'Raw', 'Ideal', 'Profit', 'Fee', 'TradesCnt', 'Trades']
+    return F
 
 
 def getProfitDict(P):
