@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 from numpy.typing import NDArray
-from simple.types import TPairTrade
+from alquant.types import TPairTrade
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
 from ipywidgets import widgets, interactive, HBox, VBox
@@ -10,18 +10,18 @@ from ipyslickgrid import show_grid
 import plotly.graph_objs as go
 from plotly.graph_objs.scattergl import Marker, Line
 from plotly.subplots import make_subplots
-from plotly_resampler import FigureWidgetResampler
+from plotly_resampler import FigureWidgetResampler, EfficientLTTB
 
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
 
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 default_template = 'plotly_white'
 default_height = 700
 
 
 def addLines(fig: go.FigureWidget, **line_styles):
-    """Add line (or lines) to the figure"""
+    """Add line (or lines/linestyles) to the figure"""
 
     for line_name in line_styles:
         line = line_styles[line_name]
@@ -59,19 +59,21 @@ def addLines(fig: go.FigureWidget, **line_styles):
                 fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
-def chartFigure(height: int = default_height, rows: int = 1, template: str = default_template, **lines) -> go.FigureWidget:
+def chartFigure(height: int = default_height, rows: int = 1, template: str = default_template, equal: bool = False, **lines) -> go.FigureWidget:
     """Create default chart widget with horizontal subplots"""
 
     specs = [[{"secondary_y": True}] for _ in range(rows)]
     if rows > 1:
-        k = (0.1 + 0.1 * rows)
+        k = 0.5 if equal else 0.1 + 0.1 * rows
         row_heights = [1 - k] + list(repeat(k / (rows - 1), rows - 1))
     else:
         row_heights = None
 
     fig = FigureWidgetResampler(
         go.FigureWidget(make_subplots(rows=rows, cols=1, row_heights=row_heights,
-                                      vertical_spacing=0.03, shared_xaxes=True, specs=specs)))
+                                      vertical_spacing=0.03, shared_xaxes=True, specs=specs)),
+        default_downsampler=EfficientLTTB(interleave_gaps=False)
+    )
 
     fig.update_layout(autosize=True, height=height, template=template,
                       legend=dict(x=0.1, y=1, orientation="h"),
@@ -90,7 +92,7 @@ def chartFigure(height: int = default_height, rows: int = 1, template: str = def
     return fig
 
 
-def updateLines(fig: go.FigureWidget, **line_data):
+def updateFigure(fig: go.FigureWidget, **line_data):
     """Update lines xy-values"""
 
     # strip html tags and some others auxiliary marks
@@ -130,7 +132,7 @@ def interactFigure(model: callable, height: int = default_height, rows: int = 1,
     fig = chartFigure(height=height, rows=rows, template=template, **line_styles)
 
     def update(**arg):
-        updateLines(fig, **model(**arg))
+        updateFigure(fig, **model(**arg))
 
     sliders = interactive(update, **defaults).children[:-1]
 
@@ -157,7 +159,7 @@ def interactTable(model: callable, X: pd.DataFrame, height: int = default_height
         updateSliders(sliders, **param)
 
         fig = box.children[1]
-        updateLines(fig, **model(**param))
+        updateFigure(fig, **model(**param))
 
     grid = show_grid(X, grid_options={'editable': False, 'forceFitColumns': True, 'multiSelect': False},
                      column_options={'defaultSortAsc': False})
@@ -166,9 +168,16 @@ def interactTable(model: callable, X: pd.DataFrame, height: int = default_height
     return VBox([box, grid])
 
 
-def chartParallel(X: pd.DataFrame, height: int = 400) -> widgets:
+def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = None) -> widgets:
     """Parallel coordinates plot for optimization results"""
-    fig = go.FigureWidget(data=go.Parcoords(dimensions=[{'label': c, 'values': X[c]} for c in X.columns]))
+
+    x = X.reset_index()  # to include index columns too
+    dimensions = [{'label': c,
+                   'values': x[c],
+                   'range': (x[c].max(), x[c].min()) if c in inverse else (x[c].min(), x[c].max())
+                   } for c in x.columns]
+
+    fig = go.FigureWidget(data=go.Parcoords(dimensions=dimensions))
     fig.update_layout(autosize=True, height=height, template=default_template, margin=dict(l=45, r=45, b=20, t=50, pad=3))
     return fig
 
