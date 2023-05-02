@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from tqdm.auto import tqdm
 import pandas as pd
+from pandas.io.formats.style import Styler
 import numpy as np
 from joblib import Parallel, delayed, cpu_count
 import inspect
@@ -38,13 +39,18 @@ class tqdmParallel(Parallel):
             self._lasttime = datetime.now()
 
 
+def plist(*args):
+    """Creates product parameter list from bunch of iterables/values"""
+    return list(product(*(p if iterable(p) else [p] for p in args)))
+
+
 def pmap(func: callable, *args, **kwargs):
     """Parallel map/starmap implementation via tqdmParallel"""
 
-    param_list = list(product(*(p if iterable(p) else [p] for p in args)))
+    param_list = plist(*args)
     with tqdmParallel(total=len(param_list), **kwargs) as P:
         FUNC = delayed(func)
-        return P(FUNC(*tpl(param)) for param in param_list)  
+        return P(FUNC(*tpl(param)) for param in param_list)
 
 
 tpl = lambda x: x if isinstance(x, tuple) else tuple(x.values()) if isinstance(x, dict) else (x,)
@@ -150,6 +156,16 @@ def background(self, scale='Linear', cmap='RdYlGn', **css) -> pd.DataFrame:
     return pd.DataFrame(styles, index=self.index, columns=self.columns)
 
 
-def pp(X: pd.DataFrame):
-    """Pretty print pandas dataframe"""
-    return X.style.apply(background, axis=None)
+def hline(row, color='black', width='1px'):
+    return [f"border-bottom: {width} solid {color};" for _ in row]
+
+
+def pp(X: pd.DataFrame, float_format: str = None, h_subset = None) -> Styler:
+    """Pretty print pandas dataframe with ability to stroke some cells"""
+
+    if float_format is None:
+        float_format = pd.options.display.float_format
+    if float_format is None:
+        float_format = '{:,.2f}'
+    x = X.style.format(float_format).apply(background, axis=None)
+    return x if h_subset is None else x.apply(hline, axis=1, subset=h_subset)
