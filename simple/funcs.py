@@ -254,6 +254,30 @@ def vx(X):
     return X.view(X.dtype.descr[0][1]).reshape(len(X), len(X.dtype.names))
 
 
+def npCombine(list_of_arrays: list, suffixes: list = []):
+    """Combines some datasets into one structured array"""
+
+    data = list(zip_longest(list_of_arrays, suffixes))
+    dtype = np.dtype(flatList(starmap(dtypeSuffixes, data)))
+    R = np.zeros(len(list_of_arrays[0]), dtype=dtype)
+    
+    for x, suffix in data:
+        R[addSuffixes(x, suffix)] = x
+        
+    return R.view(np.recarray)
+
+
+def npAdd(X, names, values):
+    """Add columns(s) to the structured array"""
+    add_desc = [(name, type(value[0])) for name, value in zip(names, values)]
+    R = np.zeros(len(X), dtype=X.dtype.descr + add_desc)
+    for name in X.dtype.names:        
+        R[name] = X[name]
+    for i, name in enumerate(names):
+        R[name] = values[i]
+    return R.view(np.recarray)
+
+
 def RGG(V):
     """Returns the series with colors for the signal"""
     return np.where(V < 0, 'red', np.where(V > 0, 'green', 'gray'))
