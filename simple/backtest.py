@@ -165,7 +165,7 @@ def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bo
     return P
 
 
-def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=True, parallel=True) -> pd.DataFrame:
+def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=False, parallel=True) -> pd.DataFrame:
     """Parallel evaluation of thresholds*signals by 2D-grid"""
 
     TS = usInt(T['DateTime'])
