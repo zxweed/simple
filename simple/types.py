@@ -13,6 +13,13 @@ TTrade = np.dtype([
     ('Size', float),
     ('OpenInt', float)])
 
+TBidAskDT = np.dtype([
+    ('DateTime', 'M8[us]'),
+    ('Bid', np.double),
+    ('Ask', np.double),
+    ('Act', np.byte)
+])
+
 # Candle record structure with additional aggressive sum/count fields
 TOHLC = np.dtype([
     ('DateTime', 'M8[us]'),
