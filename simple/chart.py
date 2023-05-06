@@ -2,11 +2,12 @@ import pandas as pd
 import numpy as np
 import re
 from numpy.typing import NDArray
-from alquant.types import TPairTrade
+from simple.types import TPairTrade
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
 from ipywidgets import widgets, interactive, HBox, VBox
 from ipyslickgrid import show_grid
+
 import plotly.graph_objs as go
 from plotly.graph_objs.scattergl import Marker, Line
 from plotly.subplots import make_subplots
