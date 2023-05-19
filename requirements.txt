@@ -13,3 +13,5 @@ requests
 statsmodels
 matplotlib
 psutil
+pyarrow
+fastparquet
