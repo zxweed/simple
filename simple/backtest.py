@@ -199,7 +199,7 @@ def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=False, p
     
     elif len(signal.shape) == 2:
         Thresholds = [np.linspace(0, np.percentile(np.abs(y), 99.98), 100) for y in signal]
-        Levels = range(len(signal2D))
+        Levels = range(len(signal))
         Param = [(level, index, threshold) for level, thresholds in zip(Levels, Thresholds) for index, threshold in enumerate(thresholds)]
         prefix = ['Level', 'Index', 'Threshold']
     
