@@ -1,28 +1,28 @@
-import numpy as np
+from numpy import dtype, byte, double, int64
 
 # Tick trade record structure (short and long versions)
-TShortTrade = np.dtype([
-    ('DateTime', 'M8[us]'),
-    ('Price', 'f8'),
-    ('Size', 'f8')])
+TShortTrade = dtype([
+    ('DateTime', 'datetime64[us]'),
+    ('Price', double),
+    ('Size', double)])
 
-TTrade = np.dtype([
-    ('DateTime', 'M8[us]'),
-    ('LocalDT', 'M8[us]'),
+TTrade = dtype([
+    ('DateTime', 'datetime64[us]'),
+    ('LocalDT', 'datetime64[us]'),
     ('Price', float),
     ('Size', float),
     ('OpenInt', float)])
 
-TBidAskDT = np.dtype([
-    ('DateTime', 'M8[us]'),
-    ('Bid', np.double),
-    ('Ask', np.double),
-    ('Act', np.byte)
+TBidAskDT = dtype([
+    ('DateTime', 'datetime64[us]'),
+    ('Bid', double),
+    ('Ask', double),
+    ('Act', byte)
 ])
 
 # Candle record structure with additional aggressive sum/count fields
-TOHLC = np.dtype([
-    ('DateTime', 'M8[us]'),
+TOHLC = dtype([
+    ('DateTime', 'datetime64[us]'),
     ('Open', float),
     ('High', float),
     ('Low', float),
@@ -37,11 +37,11 @@ TOHLC = np.dtype([
     ('SellCount', int)])
 
 # Debounced timeseries record structure
-TDebounce = np.dtype([
-    ('DateTime', 'M8[us]'),
+TDebounce = dtype([
+    ('DateTime', 'datetime64[us]'),
     ('Index', int),
     ('Price', float),
-    ('Duration', 'M8[us]'),
+    ('Duration', 'timedelta64[us]'),
 
     ('Size', float),
     ('BuySize', float),
@@ -52,7 +52,7 @@ TDebounce = np.dtype([
     ('SellCount', int)
 ])
 
-TDebounceSpread = np.dtype([
+TDebounceSpread = dtype([
     ('Ask', float),
     ('Bid', float),
     ('Mean', float),
@@ -61,17 +61,18 @@ TDebounceSpread = np.dtype([
 ])
 
 # Paired trade record structure
-TPairTrade = [
-    ('X0', np.int64), ('T0', 'M8[us]'), ('Price0', float), ('MidPrice0', float),
-    ('X1', np.int64), ('T1', 'M8[us]'), ('Price1', float), ('MidPrice1', float),
-    ('Size', float)]
+TPairTrade = dtype([
+    ('X0', int64), ('T0', 'datetime64[us]'), ('Price0', float), ('MidPrice0', float),
+    ('X1', int64), ('T1', 'datetime64[us]'), ('Price1', float), ('MidPrice1', float),
+    ('Size', float)
+])
 
 # Profit record structure
-TProfit = [
-    ('Index', np.int64),
-    ('DateTime', 'M8[us]'),
+TProfit = dtype([
+    ('Index', int64),
+    ('DateTime', 'datetime64[us]'),
     ('RawPnL', float),
     ('MidPnL', float),
     ('Fee', float),
     ('Profit', float)
-]
+])
