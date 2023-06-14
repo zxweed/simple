@@ -18,7 +18,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 default_template = 'plotly_white'
-default_height = 700
+default_height = 600
 
 
 def addLines(fig: go.FigureWidget, **line_styles):

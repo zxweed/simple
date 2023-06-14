@@ -107,7 +107,7 @@ def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDe
 def debounce(T: NDArray[TTrade]) -> NDArray[TDebounce]:
     """Drops bounce trades (that not change best bidask prices)"""
 
-    stepPrice = getStepPrice(T.Price)
+    stepPrice = getStepPrice(T['Price'])
     MidA = midPrice(T, stepPrice)
     DebA = np.zeros(len(MidA), dtype=TDebounce).view(np.recarray)
     c = resampleDebounce(MidA, T, DebA)
