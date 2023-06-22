@@ -169,7 +169,7 @@ def interactTable(model: callable, X: pd.DataFrame, height: int = default_height
     return VBox([box, grid])
 
 
-def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = None) -> widgets:
+def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = []) -> widgets:
     """Parallel coordinates plot for optimization results"""
 
     x = X.reset_index()  # to include index columns too
@@ -183,18 +183,18 @@ def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = None) -> w
     return fig
 
 
-def chartTrades(trades: NDArray[TPairTrade], tm: bool = True) -> dict:
+def chartTrades(trades: NDArray[TPairTrade], timed: bool = True) -> dict:
     Long = trades[trades.Size > 0]
     Short = trades[trades.Size < 0]
 
     return dict(
-        EnterLong=dict(x=Long.T0 if tm else Long.X0, y=Long.Price0, mode='markers',
-                       marker=dict(symbol='triangle-up', size=12, line_color='darkgreen', line_width=1, color='green')),
-        ExitLong=dict(x=Long.T1 if tm else Long.X1, y=Long.Price1, mode='markers',
-                      marker=dict(symbol='x', size=10, line_color='darkgreen', line_width=1, color='green')),
+        EnterLong=dict(x=Long.T0 if timed else Long.X0, y=Long.Price0, mode='markers',
+                       marker=dict(symbol='triangle-up', size=6, line_color='darkgreen', line_width=1, color='green')),
+        ExitLong=dict(x=Long.T1 if timed else Long.X1, y=Long.Price1, mode='markers',
+                      marker=dict(symbol='x', size=4, line_color='darkgreen', line_width=1, color='green')),
 
-        EnterShort=dict(x=Short.T0 if tm else Short.X0, y=Short.Price0, mode='markers',
-                        marker=dict(symbol='triangle-down', size=12, line_color='darkred', line_width=1, color='red')),
-        ExitShort=dict(x=Short.T1 if tm else Short.X1, y=Short.Price1, mode='markers',
-                       marker=dict(symbol='x', size=10, line_color='darkred', line_width=1, color='red'))
+        EnterShort=dict(x=Short.T0 if timed else Short.X0, y=Short.Price0, mode='markers',
+                        marker=dict(symbol='triangle-down', size=6, line_color='darkred', line_width=1, color='red')),
+        ExitShort=dict(x=Short.T1 if timed else Short.X1, y=Short.Price1, mode='markers',
+                       marker=dict(symbol='x', size=4, line_color='darkred', line_width=1, color='red'))
     )
