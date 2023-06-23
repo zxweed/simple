@@ -18,7 +18,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 default_template = 'plotly_white'
-default_height = 600
+default_height = 550
 grid_options = {'editable': False, 
                 'forceFitColumns': True, 
                 'multiSelect': False, 
@@ -157,16 +157,16 @@ def interactTable(model: callable, X: pd.DataFrame, height: int = default_height
     box = interactFigure(model, height=height, rows=rows, template=template, **line_styles)
 
     def on_changed(event, grid):
-        changed = grid.get_changed_df()
+        changed = grid.get_changed_df().reset_index()
         k = event['new'][0]
         selected = changed.iloc[k:k + 1].to_dict('records')[0]
         param = dict(filter(lambda x: x[0] in getfullargspec(model).args, selected.items()))
 
         sliders = box.children[0].children
-        updateSliders(sliders, **param)
-
         fig = box.children[1]
-        updateFigure(fig, **model(**param))
+        with fig.batch_update():
+            updateSliders(sliders, **param)
+            updateFigure(fig, **model(**param))
     
     grid = show_grid(X, grid_options=grid_options, column_options={'defaultSortAsc': False})
     grid.on('selection_changed', on_changed)
