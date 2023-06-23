@@ -19,6 +19,12 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 default_template = 'plotly_white'
 default_height = 600
+grid_options = {'editable': False, 
+                'forceFitColumns': True, 
+                'multiSelect': False, 
+                'rowHeight': 26, 
+                'maxVisibleRows': 5
+               }
 
 
 def addLines(fig: go.FigureWidget, **line_styles):
@@ -161,9 +167,8 @@ def interactTable(model: callable, X: pd.DataFrame, height: int = default_height
 
         fig = box.children[1]
         updateFigure(fig, **model(**param))
-
-    grid = show_grid(X, grid_options={'editable': False, 'forceFitColumns': True, 'multiSelect': False},
-                     column_options={'defaultSortAsc': False})
+    
+    grid = show_grid(X, grid_options=grid_options, column_options={'defaultSortAsc': False})
     grid.on('selection_changed', on_changed)
 
     return VBox([box, grid])
