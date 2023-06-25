@@ -65,7 +65,7 @@ def addLines(fig: go.FigureWidget, **line_styles):
 
 def getRowCount(**kwargs):
     """Calculated rowcount based on max 'row=x' parameter values"""
-    row_count = 0
+    row_count = 1
     for value in kwargs.values():
         if isinstance(value, dict) and 'row' in value:
             row_count = max(row_count, value['row'])
