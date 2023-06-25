@@ -63,6 +63,10 @@ class GridOpt(Opt):
         self.log_columns += list(log[0].keys())
         self.log = [(*x.values(), *r.values()) for x, r in zip(grid, log)]
         return max([x[0] for x in self.log])
+    
+    @property
+    def report(self):
+        return pd.DataFrame(self.log, columns=self.log_columns)
 
 
 class GeneOpt(Opt):
