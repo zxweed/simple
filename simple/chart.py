@@ -13,9 +13,6 @@ from plotly.graph_objs.scattergl import Marker, Line
 from plotly.subplots import make_subplots
 from plotly_resampler import FigureWidgetResampler, EfficientLTTB
 
-import warnings
-
-warnings.simplefilter(action='ignore', category=FutureWarning)
 
 default_template = 'plotly_white'
 default_height = 550
@@ -23,7 +20,7 @@ grid_options = {'editable': False,
                 'forceFitColumns': True, 
                 'multiSelect': False, 
                 'rowHeight': 26, 
-                'maxVisibleRows': 5
+                'maxVisibleRows': 6
                }
 
 
@@ -66,9 +63,21 @@ def addLines(fig: go.FigureWidget, **line_styles):
                 fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
-def chartFigure(height: int = default_height, rows: int = 1, template: str = default_template, equal: bool = False, **lines) -> go.FigureWidget:
-    """Create default chart widget with horizontal subplots"""
+def getRowCount(**kwargs):
+    """Calculated rowcount based on max 'row=x' parameter values"""
+    row_count = 0
+    for value in kwargs.values():
+        if isinstance(value, dict) and 'row' in value:
+            row_count = max(row_count, value['row'])
+    return row_count
 
+
+def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
+                template: str = default_template, equal: bool = False,
+                **lines) -> go.FigureWidget:
+    """Create interactive dynamic chart widget with horizontal subplots"""
+
+    rows = getRowCount(**lines)
     specs = [[{"secondary_y": True}] for _ in range(rows)]
     if rows > 1:
         k = 0.5 if equal else 0.1 + 0.1 * rows
@@ -82,7 +91,7 @@ def chartFigure(height: int = default_height, rows: int = 1, template: str = def
         default_downsampler=EfficientLTTB(interleave_gaps=False)
     )
 
-    fig.update_layout(autosize=True, height=height, template=template,
+    fig.update_layout(autosize=True, height=height, template=template, title=title,
                       legend=dict(x=0.1, y=1, orientation="h"),
                       margin=dict(l=45, r=15, b=10, t=30, pad=3))
 
@@ -130,13 +139,15 @@ def updateSliders(sliders: widgets, **values: dict):
         slider.value = values[slider.description]
 
 
-def interactFigure(model: callable, height: int = default_height, rows: int = 1, template: str = default_template, **line_styles) -> widgets:
+def interactFigure(model: callable, height: int = default_height, rows: int = 1,
+                   title: str = None, template: str = default_template,
+                   **line_styles) -> widgets:
     """Interactive chart with model's internal data-series and sliders to change parameters"""
 
     spec = getfullargspec(model)
     x = dict(zip_longest(reversed(spec.args), [] if spec.defaults is None else reversed(spec.defaults), fillvalue=1))
     defaults = dict(reversed(x.items()))
-    fig = chartFigure(height=height, rows=rows, template=template, **line_styles)
+    fig = chartFigure(height=height, rows=rows, template=template, title=title, **line_styles)
 
     def update(**arg):
         updateFigure(fig, **model(**arg))
@@ -177,29 +188,30 @@ def interactTable(model: callable, X: pd.DataFrame, height: int = default_height
 def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = []) -> widgets:
     """Parallel coordinates plot for optimization results"""
 
-    x = X.reset_index()  # to include index columns too
+    x = X.reset_index()    # include index columns too
     dimensions = [{'label': c,
                    'values': x[c],
                    'range': (x[c].max(), x[c].min()) if c in inverse else (x[c].min(), x[c].max())
                    } for c in x.columns]
 
     fig = go.FigureWidget(data=go.Parcoords(dimensions=dimensions))
-    fig.update_layout(autosize=True, height=height, template=default_template, margin=dict(l=45, r=45, b=20, t=50, pad=3))
+    fig.update_layout(autosize=True, height=height, template=default_template, 
+                      margin=dict(l=45, r=45, b=20, t=50, pad=3))
     return fig
 
 
-def chartTrades(trades: NDArray[TPairTrade], timed: bool = True) -> dict:
+def chartTrades(trades: NDArray[TPairTrade], use_time: bool = True) -> dict:
     Long = trades[trades.Size > 0]
     Short = trades[trades.Size < 0]
 
     return dict(
-        EnterLong=dict(x=Long.T0 if timed else Long.X0, y=Long.Price0, mode='markers',
+        EnterLong=dict(x=Long.T0 if use_time else Long.X0, y=Long.Price0, mode='markers',
                        marker=dict(symbol='triangle-up', size=6, line_color='darkgreen', line_width=1, color='green')),
-        ExitLong=dict(x=Long.T1 if timed else Long.X1, y=Long.Price1, mode='markers',
+        ExitLong=dict(x=Long.T1 if use_time else Long.X1, y=Long.Price1, mode='markers',
                       marker=dict(symbol='x', size=4, line_color='darkgreen', line_width=1, color='green')),
 
-        EnterShort=dict(x=Short.T0 if timed else Short.X0, y=Short.Price0, mode='markers',
+        EnterShort=dict(x=Short.T0 if use_time else Short.X0, y=Short.Price0, mode='markers',
                         marker=dict(symbol='triangle-down', size=6, line_color='darkred', line_width=1, color='red')),
-        ExitShort=dict(x=Short.T1 if timed else Short.X1, y=Short.Price1, mode='markers',
+        ExitShort=dict(x=Short.T1 if use_time else Short.X1, y=Short.Price1, mode='markers',
                        marker=dict(symbol='x', size=4, line_color='darkred', line_width=1, color='red'))
     )
