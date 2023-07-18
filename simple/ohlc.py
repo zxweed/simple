@@ -61,6 +61,20 @@ def midPrice(T: NDArray[TTrade], stepPrice: float) -> NDArray[float]:
 
 
 @njit(nogil=True)
+def midPrice2(T: NDArray[TTrade]) -> NDArray[float]:
+    dest = np.zeros_like(T.Price)
+    bid = ask = 0
+    for t in range(len(T)):
+        if T.Size[t] > 0:
+            ask = T.Price[t]
+        else:
+            bid = T.Price[t]
+
+        dest[t] = (bid + ask) / 2 if bid > 0 and ask > 0 else np.nan
+    return dest
+
+
+@njit(nogil=True)
 def _isclose(x, y, rtol=1e-05, atol=1e-08, equal_nan=False):
     """Backported from https://github.com/numba/numba/pull/7067, until issue is resolved."""
 
@@ -104,18 +118,70 @@ def resampleDebounce(MidA: NDArray[float], T: NDArray[TTrade], DebA: NDArray[TDe
     return c
 
 
-def debounce(T: NDArray[TTrade]) -> NDArray[TDebounce]:
+def debounce(T: NDArray[TTrade], step_price: float = None) -> NDArray[TDebounce]:
     """Drops bounce trades (that not change best bidask prices)"""
 
-    stepPrice = getStepPrice(T['Price'])
-    MidA = midPrice(T, stepPrice)
+    if step_price is None:
+        step_price = getStepPrice(T['Price'])
+
+    MidA = midPrice(T, step_price)
     DebA = np.zeros(len(MidA), dtype=TDebounce).view(np.recarray)
     c = resampleDebounce(MidA, T, DebA)
     return np.resize(DebA, c).view(np.recarray)
 
 
+#@njit(nogil=True)
+def resampleRenko2(T: NDArray[TTrade], DebA: NDArray[TDebounce], step: float = 1) -> int:
+    k = t = c = 0
+    price = T.Price[k]
+    low = np.trunc(price / step) * step
+    high = low + step
+    result = []
+    DebA.Price[c] = T.Price[t]
+    DebA.DateTime[c] = T.DateTime[t]
+
+    while t < len(T):
+        # iterate over ticks in range
+        while t < len(T) and low <= T.Price[t] < high:
+            DebA.Count[c] += 1
+            DebA.Size[c] += T.Size[t]
+            if T.Size[t] > 0:
+                DebA.BuyCount[c] += 1
+                DebA.BuySize[c] += T.Size[t]
+            else:
+                DebA.SellCount[c] += 1
+                DebA.SellSize[c] += T.Size[t]
+
+            DebA.Duration[c] = T.DateTime[t] - DebA.DateTime[c]
+            t += 1
+
+        if c > 907305 or t > 907305:
+            print(c, t)
+
+        # Price changed more than range - create new renko box
+        if t < len(DebA):
+            DebA.DateTime[c] = T.DateTime[t]
+            c += 1
+            DebA.Price[c] = T.Price[t]
+            DebA.DateTime[c] = T.DateTime[t]
+            DebA.Index[c] = c
+
+        price = T.Price[t] if t < len(T.Price) else T.Price[t - 1]
+        delta = price - T.Price[k]
+        if delta > 0:
+            result.append((k, t - 1, low, high))  # TODO: indexes must be stored as int32
+        else:
+            result.append((k, t - 1, high, low))
+        low = np.trunc(price / step) * step
+        high = low + step
+        k = t
+
+    return result
+
+
+
 @njit(nogil=True)
-def resampleRenko(P: np.array, step: int = 1) -> int:
+def resampleRenko(P: np.array, step: float = 1) -> int:
     k = t = 0
     price = P[k]
     low = np.trunc(price / step) * step
