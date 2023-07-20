@@ -36,10 +36,10 @@ default_styles = {
     'RawPnL': dict(color='gray', width=2, opacity=0.4, secondary_y=True, shape='hv', connectgaps=True),
     'Profit': dict(color='blue', width=3, opacity=0.5, secondary_y=True, shape='hv', connectgaps=True),
     
-    'EnterLong': dict(mode='markers', marker=dict(symbol='triangle-up', size=6, line_color='darkgreen', line_width=1, color='green')),
-    'ExitLong': dict(mode='markers', marker=dict(symbol='x', size=5, line_color='darkgreen', line_width=1, color='green')),
-    'EnterShort': dict(mode='markers', marker=dict(symbol='triangle-down', size=6, line_color='darkred', line_width=1, color='red')),
-    'ExitShort': dict(mode='markers', marker=dict(symbol='x', size=5, line_color='darkred', line_width=1, color='red'))
+    'EnterLong': dict(mode='markers', marker=dict(symbol='triangle-up', size=6, color='green', line_color='darkgreen', line_width=1)),
+    'ExitLong': dict(mode='markers', marker=dict(symbol='x', size=5, color='green', line_color='darkgreen', line_width=1)),
+    'EnterShort': dict(mode='markers', marker=dict(symbol='triangle-down', size=6, color='red', line_color='darkred', line_width=1)),
+    'ExitShort': dict(mode='markers', marker=dict(symbol='x', size=5, color='red', line_color='darkred', line_width=1))
 }
 
 # default grid parameters
@@ -63,7 +63,7 @@ def addLines(fig: go.FigureWidget, **line_styles):
         # if predefined name specified - fill missed attributes from default_styles
         line = {**default_styles.get(line_name, {}), **line}
             
-        # layout parameters can be redefined in line_kw also
+        # layout parameters can be redefined in the 'line_styles' parameters also
         if line_name == 'layout':
             for param_name in line:
                 fig.layout[param_name] = line[param_name]
@@ -255,10 +255,12 @@ def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = []) -> wid
     """Parallel coordinates plot for optimization results"""
 
     x = X.reset_index()    # include index columns too
-    dimensions = [{'label': c,
-                   'values': x[c],
-                   'range': (x[c].max(), x[c].min()) if c in inverse else (x[c].min(), x[c].max())
-                   } for c in x.columns]
+    dimensions = [
+        {'label': c,
+         'values': x[c],
+         'range': (x[c].max(), x[c].min()) if c in inverse else (x[c].min(), x[c].max())
+        } for c in x.columns
+    ]
 
     fig = go.FigureWidget(data=go.Parcoords(dimensions=dimensions))
     fig.update_layout(autosize=True, height=height, template=default_template,
