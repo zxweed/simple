@@ -52,18 +52,18 @@ grid_options = {
 }
 
 
-def addLines(fig: go.FigureWidget, **line_styles):
+def addLines(fig: go.FigureWidget, **lines):
     """Add line(s) or linestyle(s) to the figure"""
 
-    for line_name in line_styles:
-        line = line_styles[line_name]
+    for line_name in lines:
+        line = lines[line_name]
         if type(line) != dict:
             line = {'hf_y': line}  # if there is only one value specified - interpret as Y series
             
         # if predefined name specified - fill missed attributes from default_styles
         line = {**default_styles.get(line_name, {}), **line}
             
-        # layout parameters can be redefined in the 'line_styles' parameters also
+        # layout parameters can be redefined in the 'lines' parameters also
         if line_name == 'layout':
             for param_name in line:
                 fig.layout[param_name] = line[param_name]
@@ -100,10 +100,10 @@ def addLines(fig: go.FigureWidget, **line_styles):
                 fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
 
-def getRowCount(**kwargs) -> int:
+def getRowCount(**lines) -> int:
     """Calculated rowcount based on max 'row=x' parameter values"""
     row_count = 1
-    for value in kwargs.values():
+    for value in lines.values():
         if isinstance(value, dict) and 'row' in value:
             row_count = max(row_count, value['row'])
     return row_count
@@ -144,14 +144,14 @@ def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
     return fig
 
 
-def updateFigure(fig: go.FigureWidget, **line_kw):
+def updateFigure(fig: go.FigureWidget, **lines):
     """Update lines values"""
 
     # strip html tags and some others auxiliary marks
     names = [re.sub('<[^<]+?>|\[.*]|~.*|\s', '', s.name) for s in fig.data]
     with fig.batch_update():
         # update existing lines
-        for name, line in line_kw.items():
+        for name, line in lines.items():
             y = line['y'] if type(line) == dict else line
             if name in names:
                 k = names.index(name)
@@ -165,8 +165,8 @@ def updateFigure(fig: go.FigureWidget, **line_kw):
         if len(fig.data) > 0:
             fig.reload_data()
 
-        # layout can be specified in line_kw also
-        layout = line_kw.get('layout')
+        # layout can be specified in lines also
+        layout = lines.get('layout')
         if layout is not None:
             for param_name in layout:
                 fig.layout[param_name] = layout[param_name]
@@ -183,13 +183,13 @@ def updateSliders(sliders: widgets, **values: dict):
 
 def interactFigure(model: callable, height: int = default_height, rows: int = 1,
                    title: str = None, template: str = default_template,
-                   **line_styles) -> widgets:
+                   **lines) -> widgets:
     """Interactive chart with model's internal data-series and sliders to change parameters"""
 
     spec = getfullargspec(model)
     x = dict(zip_longest(reversed(spec.args), [] if spec.defaults is None else reversed(spec.defaults), fillvalue=1))
     defaults = dict(reversed(x.items()))
-    fig = chartFigure(height=height, rows=rows, template=template, title=title, **line_styles)
+    fig = chartFigure(height=height, rows=rows, template=template, title=title, **lines)
 
     def update(**arg):
         updateFigure(fig, **model(**arg))
@@ -204,10 +204,10 @@ def interactFigure(model: callable, height: int = default_height, rows: int = 1,
 
 
 def interactTable(model: callable, X: pd.DataFrame, height: int = default_height, rows: int = 1,
-                  template: str = default_template, **line_styles) -> widgets:
+                  template: str = default_template, **lines) -> widgets:
     """Interactive parameter table browser"""
 
-    box = interactFigure(model, height=height, rows=rows, template=template, **line_styles)
+    box = interactFigure(model, height=height, rows=rows, template=template, **lines)
 
     def on_changed(event, grid):
         changed = grid.get_changed_df().reset_index()
