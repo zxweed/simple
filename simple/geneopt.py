@@ -42,7 +42,7 @@ def inclusive_range(*args):
     elif nargs == 3:
         (start, stop, step) = args
     else:
-        raise TypeError("Inclusive range was expected at most 3 arguments,got {}".format(nargs))
+        raise TypeError("Inclusive range was expected at most 3 arguments, got {}".format(nargs))
     i = start
     while i <= stop:
         yield i
@@ -53,7 +53,8 @@ class GridOpt(Opt):
     """Full grid optimization engine"""
 
     def fullSearch(self, callback: callable = None):
-        X = product(*(inclusive_range(*v) for v in self.defaults.values()))
+        # create list with all parameter combinations
+        X = product(*(inclusive_range(*v) if type(v) == tuple else v for v in self.defaults.values()))
         grid = [dict(zip(self.args, x)) for x in X]
 
         with tqdmParallel(total=len(grid), backend='multiprocessing') as P:

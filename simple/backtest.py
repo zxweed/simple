@@ -165,6 +165,23 @@ def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bo
     return P
 
 
+def getProfitDict(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bool = False) -> dict:
+    """Returns profit values for trades in dictionary form"""
+    
+    P: NDArray[TProfit] = getProfit(trades, fee_percent, inversed)
+    Profit = P['RawPnL'] - P['Fee']
+    return {
+        'Profit': Profit.sum(),
+        'Count': len(P),
+        'PRatio': (Profit > 0).mean(),
+        'AvgMid': P['MidPnL'].mean() if len(P) > 0 else 0,
+        'RawPnL': P['RawPnL'].sum() if len(P) > 0 else 0,
+        'Fee': P['Fee'].sum() if len(P) > 0 else 0,
+        'MidPnL': P['MidPnL'].sum() if len(P) > 0 else 0,
+        'Sharpe': P['Profit'].sum() / P['Profit'].std() if len(P) > 1 else 0
+    }
+
+
 def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=False, parallel=True) -> pd.DataFrame:
     """Parallel evaluation of thresholds*signals by 2D-grid"""
 
@@ -213,17 +230,6 @@ def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=False, p
     F = pd.DataFrame(Param).join(pd.DataFrame(X), rsuffix='_')
     F.columns = prefix + ['Raw', 'Ideal', 'Profit', 'Fee', 'TradesCnt', 'Trades']
     return F
-
-
-def getProfitDict(P):
-    return {
-        'Count': len(P),
-        'AvgMid': P.MidPnL.mean() if len(P) > 0 else 0,
-        'RawPnL': P.RawPnL.sum() if len(P) > 0 else 0,
-        'Fee': P.Fee.sum() if len(P) > 0 else 0,
-        'MidPnL': P.MidPnL.sum() if len(P) > 0 else 0,
-        'Sharpe': P.Profit.sum() / P.Profit.std() if len(P) > 1 else 0
-     }
 
 
 def getLong(trades: NDArray[TPairTrade]) -> dict:
