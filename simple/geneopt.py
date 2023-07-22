@@ -52,7 +52,7 @@ def inclusive_range(*args):
 class GridOpt(Opt):
     """Full grid optimization engine"""
 
-    def fullSearch(self, callback: callable = None):
+    def run(self):
         # create list with all parameter combinations
         X = product(*(inclusive_range(*v) if type(v) == tuple else v for v in self.defaults.values()))
         grid = [dict(zip(self.args, x)) for x in X]
