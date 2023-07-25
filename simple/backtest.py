@@ -173,7 +173,7 @@ def getProfitDict(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed
     return {
         'Profit': Profit.sum(),
         'Count': len(P),
-        'PRatio': (Profit > 0).mean(),
+        'PRatio': (Profit > 0).mean() if len(Profit) > 0 else 0,
         'AvgMid': P['MidPnL'].mean() if len(P) > 0 else 0,
         'RawPnL': P['RawPnL'].sum() if len(P) > 0 else 0,
         'Fee': P['Fee'].sum() if len(P) > 0 else 0,

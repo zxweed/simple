@@ -7,10 +7,9 @@ from multiprocessing.pool import Pool
 from random import randrange, randint, uniform
 from contextlib import closing
 from tqdm.auto import tqdm
-from itertools import zip_longest
+from itertools import zip_longest, product
 import numpy as np
 import pandas as pd
-from itertools import product
 from simple.pretty import tqdmParallel
 from joblib import delayed
 from psutil import cpu_percent
