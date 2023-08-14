@@ -171,7 +171,7 @@ def updateFigure(fig: go.FigureWidget, **lines):
             for param_name in layout:
                 fig.layout[param_name] = layout[param_name]
 
-        fig.update_traces(xaxis='x1')
+        #fig.update_traces(xaxis='x1')
 
 
 def updateSliders(sliders: widgets, **values: dict):
