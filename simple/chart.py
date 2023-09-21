@@ -1,3 +1,17 @@
+"""
+This module provides various functions to create and manipulate interactive charts 
+using the Plotly and IPyWidgets libraries. The code is organized into the following functions:
+
+addLines: Adds lines or markers to a given FigureWidget, handling different line types and layout parameters.
+chartFigure: Creates a default chart widget with horizontal subplots.
+updateFigure: Updates lines' xy-values in a given FigureWidget.
+updateSliders: Updates slider values for a given set of sliders.
+interactFigure: Creates an interactive chart with a model's internal data-series and sliders to change parameters.
+interactTable: Creates an interactive parameter table browser.
+chartParallel: Creates a parallel coordinates plot for optimization results.
+chartTrades: Returns a dictionary with trade markers (enter and exit) for long and short trades.
+"""
+
 import pandas as pd
 import numpy as np
 import re
@@ -7,9 +21,9 @@ from itertools import repeat, zip_longest
 from ipywidgets import widgets, interactive, HBox, VBox
 from ipyslickgrid import show_grid
 
-from simple.types import TPairTrade
-from simple.pretty import iterable
-from simple.backtest import getProfit
+from alquant.types import TPairTrade
+from alquant.pretty import iterable
+from alquant.backtest import getProfit
 
 import plotly.graph_objs as go
 from plotly.graph_objs.scattergl import Marker, Line
@@ -25,10 +39,10 @@ default_legend = dict(x=0.1, y=1, orientation="h")
 
 default_styles = {
     'Tick': dict(color='gray', opacity=0.25),
-    'Ask': dict(color='red', opacity=0.25),
-    'Bid': dict(color='green', opacity=0.25),
-    'qA': dict(color='red', opacity=0.5, dash='dot'),
-    'qB': dict(color='green', opacity=0.5, dash='dot'),
+    'Ask': dict(color='red', opacity=0.25, shape='hv'),
+    'Bid': dict(color='green', opacity=0.25, shape='hv'),
+    'qA': dict(color='red', opacity=0.5, dash='dot', shape='hv'),
+    'qB': dict(color='green', opacity=0.5, dash='dot', shape='hv'),
     
     'Signal': dict(color='blue', opacity=0.5, row=2),
     
@@ -95,6 +109,10 @@ def addLines(fig: go.FigureWidget, **lines):
             if line_class == go.Candlestick:
                 if 'x' not in line_dict:
                     line_dict['x'] = np.arange(len(line_dict['open']))
+                if 'row' in trace_dict:
+                    line_dict['row'] = trace_dict['row']
+                    line_dict['col'] = 1
+
                 fig.add_candlestick(name=line_name, **line_dict)
             else:
                 fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
@@ -116,8 +134,13 @@ def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
 
     rows = max(getRowCount(**lines), rows)
     if rows > 1:
-        k = 0.5 if equal else 0.1 + 0.1 * rows
-        row_heights = [1 - k] + list(repeat(k / (rows - 1), rows - 1))
+        if equal:
+            k = 1 / rows
+            row_heights = list(repeat(k, rows))
+        else:
+            aux = rows - 1   # auxiliary rows count
+            k = 0.1 + 0.1 * rows  # ratio of auxiliary rows
+            row_heights = [1 - k] + list(repeat(k/aux, aux))
     else:
         row_heights = None
 
@@ -171,7 +194,7 @@ def updateFigure(fig: go.FigureWidget, **lines):
             for param_name in layout:
                 fig.layout[param_name] = layout[param_name]
 
-        #fig.update_traces(xaxis='x1')
+        fig.update_traces(xaxis='x1')
 
 
 def updateSliders(sliders: widgets, **values: dict):
