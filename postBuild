@@ -2,7 +2,7 @@ jupyter contrib nbextension install --user
 jupyter nbextension enable --py widgetsnbextension
 jupyter nbextension enable --py --sys-prefix ipyslickgrid
 
-pip install plotly_resampler=0.8.3.2
+pip install plotly_resampler==0.8.3.2
 
 wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
 tar xvzf ta-lib-0.4.0-src.tar.gz
