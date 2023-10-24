@@ -9,7 +9,6 @@ examples/adaptive.RSX.backtest.ipynb
 examples/binance.ADF.ipynb
 examples/binance.RSI.detailed.ipynb
 examples/binance.RSI.ipynb
-examples/binance.ohlc.ipynb
 examples/binance.pct_change.ipynb
 examples/binance.sliding.correlation.ipynb
 examples/binance.weekly.profile.ipynb

@@ -147,7 +147,7 @@ def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
     specs = list(repeat([{"secondary_y": True}], rows))
     fig = FigureWidgetResampler(
         go.FigureWidget(make_subplots(rows=rows, cols=1, row_heights=row_heights,
-                                      vertical_spacing=0.03, shared_xaxes=True, specs=specs)),
+                                      vertical_spacing=0, shared_xaxes=True, subplot_titles=(False, False), specs=specs)),
         default_downsampler=EfficientLTTB(interleave_gaps=False)
     )
 
