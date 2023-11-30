@@ -3,13 +3,14 @@
 from deap import creator, base, tools
 from deap.algorithms import varAnd, eaSimple
 import inspect
-from multiprocessing.pool import Pool
+from multiprocessing.pool import ThreadPool
 from random import randrange, randint, uniform
 from contextlib import closing
 from tqdm.auto import tqdm
-from itertools import zip_longest, product
+from itertools import zip_longest
 import numpy as np
 import pandas as pd
+from itertools import product
 from simple.pretty import tqdmParallel
 from joblib import delayed
 from psutil import cpu_percent
@@ -28,6 +29,21 @@ class Opt:
 
 
 def inclusive_range(*args):
+    """
+    Generates an inclusive range of numbers based on the given arguments.
+    
+    Args:
+        *args: The arguments can be passed in any of the following formats:
+            - (stop): Generates numbers from 0 to stop-1 with a step of 1.
+            - (start, stop): Generates numbers from start to stop-1 with a step of 1.
+            - (start, stop, step): Generates numbers from start to stop-1 with a step of step.
+    
+    Yields:
+        int: The next number in the inclusive range.
+    
+    Raises:
+        TypeError: If no arguments are passed or if more than 3 arguments are passed.
+    """
     nargs = len(args)
     if nargs == 0:
         raise TypeError("you need to write at least a value")
@@ -41,7 +57,7 @@ def inclusive_range(*args):
     elif nargs == 3:
         (start, stop, step) = args
     else:
-        raise TypeError("Inclusive range was expected at most 3 arguments, got {}".format(nargs))
+        raise TypeError("Inclusive range was expected at most 3 arguments,got {}".format(nargs))
     i = start
     while i <= stop:
         yield i
@@ -51,9 +67,8 @@ def inclusive_range(*args):
 class GridOpt(Opt):
     """Full grid optimization engine"""
 
-    def run(self):
-        # create list with all parameter combinations
-        X = product(*(inclusive_range(*v) if type(v) == tuple else v for v in self.defaults.values()))
+    def fullSearch(self):
+        X = product(*(inclusive_range(*v) if isinstance(v, tuple) else (v,) for v in self.defaults.values()))
         grid = [dict(zip(self.args, x)) for x in X]
 
         with tqdmParallel(total=len(grid), backend='multiprocessing') as P:
@@ -63,10 +78,6 @@ class GridOpt(Opt):
         self.log_columns += list(log[0].keys())
         self.log = [(*x.values(), *r.values()) for x, r in zip(grid, log)]
         return max([x[0] for x in self.log])
-    
-    @property
-    def report(self):
-        return pd.DataFrame(self.log, columns=self.log_columns)
 
 
 class GeneOpt(Opt):
@@ -91,7 +102,19 @@ class GeneOpt(Opt):
         result_dict = self.target(*individual)
         return result_dict,
 
-    def maximize(self, population_size=128, generations=5, callback: callable = None):
+    def maximize(self, population_size=128, generations=5, what: str = 'Profit', callback: callable = None):
+        """
+        Maximizes the fitness value of the target function using a genetic algorithm.
+
+        Args:
+            population_size (int): The size of the population. Default is 128.
+            generations (int): The number of generations to run the algorithm. Default is 5.
+            what (str): The value name to maximize (if the fitness function returns dict). Default is 'Profit'.
+            callback (callable): A callback function to be called after each generation (may be used to update chart)
+
+        Returns:
+            dict: A dictionary containing the best individual found by the algorithm.
+        """
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
         creator.create("Individual", list, fitness=creator.FitnessMax)
 
@@ -101,16 +124,16 @@ class GeneOpt(Opt):
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
         toolbox.register("evaluate", self.evalOneMax)
         toolbox.register("mate", tools.cxTwoPoint)
-        toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
-        toolbox.register("select", tools.selTournament, tournsize=3)
+        toolbox.register("mutate", tools.mutFlipBit, indpb=0.3)
+        toolbox.register("select", tools.selTournament, tournsize=5)
         population = toolbox.population(n=population_size)
 
-        with closing(Pool()) as P:
+        with closing(ThreadPool()) as P:
             toolbox.register("map", P.map)
 
             pbar = tqdm(range(generations))
             for _ in pbar:
-                offspring = varAnd(population, toolbox, cxpb=0.5, mutpb=0.2)
+                offspring = varAnd(population, toolbox, cxpb=0.5, mutpb=0.3)
                 fits = toolbox.map(toolbox.evaluate, offspring)
 
                 if callback is not None:
@@ -119,7 +142,7 @@ class GeneOpt(Opt):
                 for fit, ind in zip(fits, offspring):
                     f = fit[0]   # fitness value is tuple always
                     if type(f) == dict:
-                        fitness_value = f['Profit'] if 'Profit' in f else 0
+                        fitness_value = f[what] if what in f else 0
                         fitness_tuple = (fitness_value,)
 
                         # only ordinal typed items stored in the log list
@@ -128,7 +151,10 @@ class GeneOpt(Opt):
                         self.log.append((*ind, *filtered_dict.values()))
 
                     else:
-                        fitness_tuple = f,
+                        fitness_value = f
+                        fitness_tuple = (fitness_value,)
+                        if 'Fitness' not in self.log_columns:
+                            self.log_columns += ['Fitness']
                         self.log.append((*ind, f))
 
                     ind.fitness.values = fitness_tuple
@@ -140,39 +166,3 @@ class GeneOpt(Opt):
         del creator.Individual
 
         return dict(zip(self.args, tools.selBest(population, k=1)[0]))
-
-    def progress(self, x):
-        print(end='.', flush=True)
-
-    def maxi(self, population_size=128, generations=5):
-        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-        creator.create("Individual", list, typecode='i', fitness=creator.FitnessMax)
-
-        # Attribute generator
-        toolbox = base.Toolbox()
-
-        toolbox.register("individual", tools.initIterate, creator.Individual, self.genIndividual)
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-        toolbox.register("evaluate", self.evalOneMax)
-        toolbox.register("mate", tools.cxTwoPoint)
-        toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
-        toolbox.register("select", tools.selTournament, tournsize=13)
-
-        stats = tools.Statistics(lambda ind: ind.fitness.values)
-        stats.register("avg", np.mean)
-        stats.register("max", np.max)
-        stats.register("progress", self.progress)
-
-        hof = tools.HallOfFame(1)
-        with closing(Pool()) as P:
-            toolbox.register("map", P.map)
-            pop_list, log_list = eaSimple(population_size, toolbox, cxpb=0.5, mutpb=0.2,
-                                          ngen=generations, stats=stats, halloffame=hof, verbose=False)
-
-        del creator.FitnessMax
-        del creator.Individual
-
-        self.pop = pd.DataFrame(pop_list, columns=inspect.getfullargspec(self.target).args)
-        self.log = pd.DataFrame(log_list)
-
-        return dict(zip(self.args, tuple(hof.items[0])))
