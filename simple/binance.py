@@ -21,9 +21,11 @@ def _HistOHLC(month, ticker, frame, close_only=False, spot=False):
         else:
             url = hist_fut_api.format(month=month, ticker=ticker, frame=frame)
 
-        x = pd.read_csv(url, header=None,
-                        names=['DateTime', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT', 'BaseVolume',
-                               'TradeCount', 'TakerBase', 'TakerQuote', 'Ignore'])
+        header = None if month <= '2022-03' else 'infer'
+        x = pd.read_csv(url, header=header)
+        x.columns = [
+            'DateTime', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT',
+            'QuoteVolume', 'Count', 'TakerBuyVolume', 'TakerBuyQuoteVolume', 'Ignore']
 
         x.DateTime = x.DateTime.astype('M8[ms]')
         x.CloseDT = x.CloseDT.astype('M8[ms]')
@@ -35,9 +37,11 @@ def _HistOHLC(month, ticker, frame, close_only=False, spot=False):
 
 
 def getHistMonth(start_date, end_date, ticker, frame, close_only=False, spot=False):
-    M = [s.strftime('%Y-%m') for s in pd.date_range(start_date, end_date, freq='MS')]
-    X = pd.concat(ThreadPool(16).map(partial(_HistOHLC, ticker=ticker, frame=frame, close_only=close_only, spot=spot), M))
-    return X
+    months = [s.strftime('%Y-%m') for s in pd.date_range(start_date, end_date, freq='MS')]
+    lst = ThreadPool(16).map(partial(_HistOHLC, ticker=ticker, frame=frame, close_only=close_only, spot=spot), months)
+    lst = [item for item in lst if item is not None]
+    if len(lst) > 0:
+        return pd.concat(lst, axis=1)
 
 
 def request(url):
