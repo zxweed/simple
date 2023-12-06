@@ -41,7 +41,7 @@ def getHistMonth(start_date, end_date, ticker, frame, close_only=False, spot=Fal
     lst = ThreadPool(16).map(partial(_HistOHLC, ticker=ticker, frame=frame, close_only=close_only, spot=spot), months)
     lst = [item for item in lst if item is not None]
     if len(lst) > 0:
-        return pd.concat(lst, axis=1)
+        return pd.concat(lst)
 
 
 def request(url):
