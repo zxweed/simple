@@ -289,3 +289,26 @@ def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = []) -> wid
     fig.update_layout(autosize=True, height=height, template=default_template,
                       margin=dict(l=45, r=45, b=20, t=50, pad=3))
     return fig
+
+
+def top_features(model, importance_type='split', top=16):
+    """Returns top importance features with names"""
+    F = list(sorted(zip(model.feature_importance(importance_type), model.feature_name())))[-top:]
+    return [importance for importance, _ in F], [name for _, name in F]
+
+
+def chartImportance(predictor, top=16):
+    """Feature importance chart"""
+
+    fig = make_subplots(rows=1, cols=2, vertical_spacing=1)
+    line = dict(color='black', width=1)
+
+    x, y = top_features(predictor, 'gain', top)
+    fig.add_bar(x=x, y=y, orientation='h', name='Feature by gain', marker_color='#3366CC', marker_line=line)
+
+    x, y = top_features(predictor, 'split', top)
+    fig.add_bar(x=x, y=y, orientation='h', name='Feature by split', marker_color='#325A9B', marker_line=line, row=1, col=2)
+
+    fig.update_layout(autosize=True, height=400, margin=dict(l=180, r=20, t=35, b=35),
+                      legend=dict(x=0.1, y=1.1, orientation="h"), template=default_template)
+    return fig
