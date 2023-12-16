@@ -6,7 +6,7 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 
 setup(
     name="simple",
-    version="0.4",
+    version="0.5",
     author="zxweed",
     author_email="zxweed@gmail.com",
     description="A package that implements some simple trading functions",
