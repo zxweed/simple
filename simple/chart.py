@@ -28,7 +28,7 @@ from simple.backtest import getProfit
 import plotly.graph_objs as go
 from plotly.graph_objs.scattergl import Marker, Line
 from plotly.subplots import make_subplots
-from plotly_resampler import FigureWidgetResampler, EfficientLTTB
+from plotly_resampler import FigureWidgetResampler
 
 
 # default chart figure parameters
@@ -129,7 +129,7 @@ def getRowCount(**lines) -> int:
 
 def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
                 template: str = default_template, equal: bool = False,
-                **lines) -> go.FigureWidget:
+                **lines) -> FigureWidgetResampler:
     """Create interactive dynamic chart widget with horizontal subplots"""
 
     rows = max(getRowCount(**lines), rows)
@@ -146,10 +146,7 @@ def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
 
     specs = list(repeat([{"secondary_y": True}], rows))
     fig = FigureWidgetResampler(
-        go.FigureWidget(make_subplots(rows=rows, cols=1, row_heights=row_heights,
-                                      vertical_spacing=0, shared_xaxes=True, subplot_titles=(False, False), specs=specs)),
-        default_downsampler=EfficientLTTB(interleave_gaps=False)
-    )
+        make_subplots(rows=rows, cols=1, row_heights=row_heights, vertical_spacing=0.01, shared_xaxes=True, specs=specs))
 
     fig.update_layout(autosize=True, height=height, template=template, title=title,
                       legend=default_legend, margin=default_margin)
@@ -188,7 +185,7 @@ def updateFigure(fig: go.FigureWidget, **lines):
         if len(fig.data) > 0:
             fig.reload_data()
 
-        # layout can be specified in lines also
+        # layout parameters can be specified in the lines also
         layout = lines.get('layout')
         if layout is not None:
             for param_name in layout:
@@ -204,18 +201,18 @@ def updateSliders(sliders: widgets, **values: dict):
         slider.value = values[slider.description]
 
 
-def interactFigure(model: callable, height: int = default_height, rows: int = 1,
+def interactFigure(model_func: callable, height: int = default_height, rows: int = 1,
                    title: str = None, template: str = default_template,
                    **lines) -> widgets:
     """Interactive chart with model's internal data-series and sliders to change parameters"""
 
-    spec = getfullargspec(model)
+    spec = getfullargspec(model_func)
     x = dict(zip_longest(reversed(spec.args), [] if spec.defaults is None else reversed(spec.defaults), fillvalue=1))
     defaults = dict(reversed(x.items()))
     fig = chartFigure(height=height, rows=rows, template=template, title=title, **lines)
 
     def update(**arg):
-        updateFigure(fig, **model(**arg))
+        updateFigure(fig, **model_func(**arg))
 
     sliders = interactive(update, **defaults).children[:-1]
 
@@ -226,22 +223,22 @@ def interactFigure(model: callable, height: int = default_height, rows: int = 1,
     return VBox([HBox(sliders), fig])
 
 
-def interactTable(model: callable, X: pd.DataFrame, height: int = default_height, rows: int = 1,
-                  template: str = default_template, **lines) -> widgets:
+def interactTable(model_func: callable, X: pd.DataFrame, height: int = default_height, rows: int = 1,
+                  title: str = None, template: str = default_template, **lines) -> widgets:
     """Interactive parameter table browser"""
 
-    box = interactFigure(model, height=height, rows=rows, template=template, **lines)
+    box = interactFigure(model_func, height=height, rows=rows, template=template, title=title, **lines)
 
     def on_changed(event, grid):
         changed = grid.get_changed_df().reset_index()
         k = event['new'][0]
         selected = changed.iloc[k:k + 1].to_dict('records')[0]
-        param = dict(filter(lambda x: x[0] in getfullargspec(model).args, selected.items()))
+        param = dict(filter(lambda x: x[0] in getfullargspec(model_func).args, selected.items()))
 
         sliders, fig = box.children[0].children, box.children[1]
         with fig.batch_update():
             updateSliders(sliders, **param)
-            updateFigure(fig, **model(**param))
+            updateFigure(fig, **model_func(**param))
 
     grid = show_grid(X, grid_options=grid_options, column_options={'defaultSortAsc': False})
     grid.on('selection_changed', on_changed)
@@ -250,7 +247,7 @@ def interactTable(model: callable, X: pd.DataFrame, height: int = default_height
 
 
 def chartProfit(trades: NDArray[TPairTrade], use_time: bool = False) -> dict:
-    """Returns dict with profit lines and trades"""
+    """Returns dict with profit lines for chart"""
 
     P = getProfit(trades)
     x = P.DateTime if use_time else P.Index
@@ -262,7 +259,7 @@ def chartProfit(trades: NDArray[TPairTrade], use_time: bool = False) -> dict:
 
 
 def chartTrades(trades: NDArray[TPairTrade], use_time: bool = False) -> dict:
-    """Returns dict with trades symbols"""
+    """Returns dict with trades symbols for chart"""
     Long = trades[trades.Size > 0]
     Short = trades[trades.Size < 0]
 
@@ -272,23 +269,6 @@ def chartTrades(trades: NDArray[TPairTrade], use_time: bool = False) -> dict:
         'EnterShort': dict(x=Short.T0 if use_time else Short.X0, y=Short.Price0),
         'ExitShort': dict(x=Short.T1 if use_time else Short.X1, y=Short.Price1)
     }
-
-
-def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = []) -> widgets:
-    """Parallel coordinates plot for optimization results"""
-
-    x = X.reset_index()    # include index columns too
-    dimensions = [
-        {'label': c,
-         'values': x[c],
-         'range': (x[c].max(), x[c].min()) if c in inverse else (x[c].min(), x[c].max())
-        } for c in x.columns
-    ]
-
-    fig = go.FigureWidget(data=go.Parcoords(dimensions=dimensions))
-    fig.update_layout(autosize=True, height=height, template=default_template,
-                      margin=dict(l=45, r=45, b=20, t=50, pad=3))
-    return fig
 
 
 def top_features(model, importance_type='split', top=16):
@@ -311,4 +291,21 @@ def chartImportance(predictor, top=16):
 
     fig.update_layout(autosize=True, height=400, margin=dict(l=180, r=20, t=35, b=35),
                       legend=dict(x=0.1, y=1.1, orientation="h"), template=default_template)
+    return fig
+
+
+def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = []) -> widgets:
+    """Parallel coordinates chart for optimization results"""
+
+    x = X.reset_index()    # include index columns too
+    dimensions = [
+        {'label': c,
+         'values': x[c],
+         'range': (x[c].max(), x[c].min()) if c in inverse else (x[c].min(), x[c].max())
+        } for c in x.columns
+    ]
+
+    fig = go.FigureWidget(data=go.Parcoords(dimensions=dimensions))
+    fig.update_layout(autosize=True, height=height, template=default_template,
+                      margin=dict(l=45, r=45, b=20, t=50, pad=3))
     return fig

@@ -15,4 +15,4 @@ matplotlib
 psutil
 pyarrow
 fastparquet
-plotly_resampler<=0.8.3.2
+plotly_resampler
