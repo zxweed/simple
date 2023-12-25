@@ -5,6 +5,7 @@ from numba import njit
 from joblib import Parallel, delayed
 from simple.types import TTrade, TDebounce, TDebounceSpread
 from numpy.typing import NDArray
+from itertools import zip_longest
 
 
 @np.vectorize
@@ -35,7 +36,7 @@ def Ratio(vA, vB, L) -> np.ndarray:
 
 
 @njit(nogil=True)
-def vPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
+def vPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[np.float64]:
     """Some version of Volume-Synchronized Probability of Informed Trading - paper by Easley, Lopez de Prado, O’Hara"""
 
     A = B = 0
@@ -67,7 +68,7 @@ def vPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
 
 
 @njit(nogil=True)
-def cPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
+def cPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[np.float64]:
     """Tick-synchronized buy/sell count imbalance ratio"""
 
     A = B = 0
@@ -99,7 +100,7 @@ def cPIN(T: NDArray[TTrade], period: int = 1000) -> NDArray[float]:
 
 
 @njit(nogil=True)
-def tickSpeed(T: NDArray[TTrade], period: int = 1000, log: bool = False) -> NDArray[float]:
+def tickSpeed(T: NDArray[TTrade], period: int = 1000, log: bool = False) -> NDArray[np.float64]:
     """Tick speed indicator (change of price in dollars per second)"""
     resultA = np.zeros(len(T), dtype=np.float32)
     resultA[:period] = np.nan
@@ -120,7 +121,7 @@ def tickSpeed(T: NDArray[TTrade], period: int = 1000, log: bool = False) -> NDAr
 
 
 @njit(nogil=True)
-def vwap(T: NDArray[TTrade], period: int, destA: np.array = None) -> NDArray[float]:
+def vwap(T: NDArray[TTrade], period: int, destA: np.array = None) -> NDArray[np.float64]:
     """Volume Weighted Average Price"""
     turnover = 0.
     size = 0.
@@ -254,19 +255,6 @@ def vx(X):
     return X.view(X.dtype.descr[0][1]).reshape(len(X), len(X.dtype.names))
 
 
-def npCombine(list_of_arrays: list, suffixes: list = []):
-    """Combines some datasets into one structured array"""
-
-    data = list(zip_longest(list_of_arrays, suffixes))
-    dtype = np.dtype(flatList(starmap(dtypeSuffixes, data)))
-    R = np.zeros(len(list_of_arrays[0]), dtype=dtype)
-    
-    for x, suffix in data:
-        R[addSuffixes(x, suffix)] = x
-        
-    return R.view(np.recarray)
-
-
 def npAdd(X, names, values):
     """Add columns(s) to the structured array"""
     add_desc = [(name, type(value[0])) for name, value in zip(names, values)]
@@ -354,7 +342,7 @@ def getSpread(ts: NDArray, A: NDArray, B: NDArray, C: NDArray[TDebounce]) -> NDA
 
 
 @njit(nogil=True)
-def turn(signal: NDArray[float], threshold: float) -> NDArray[float]:
+def turn(signal: NDArray[np.float64], threshold: float) -> NDArray[np.float64]:
     result = np.zeros(len(signal))
     for i in range(1, len(signal)):
         k = i - 1
