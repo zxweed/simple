@@ -2,27 +2,35 @@ from numpy import dtype, byte, double, int64
 
 # Tick trade record structure (short and long versions)
 TShortTrade = dtype([
-    ('DateTime', 'datetime64[us]'),
+    ('DateTime', 'M8[us]'),
     ('Price', double),
     ('Size', double)])
 
 TTrade = dtype([
-    ('DateTime', 'datetime64[us]'),
-    ('LocalDT', 'datetime64[us]'),
+    ('DateTime', 'M8[us]'),
+    ('LocalDT', 'M8[us]'),
     ('Price', float),
     ('Size', float),
     ('OpenInt', float)])
 
 TBidAskDT = dtype([
-    ('DateTime', 'datetime64[us]'),
+    ('DateTime', 'M8[us]'),
     ('Bid', double),
     ('Ask', double),
     ('Act', byte)
 ])
 
-# Candle record structure with additional aggressive sum/count fields
 TOHLC = dtype([
-    ('DateTime', 'datetime64[us]'),
+    ('DateTime', 'M8[us]'),
+    ('Open', float),
+    ('High', float),
+    ('Low', float),
+    ('Close', float)
+])
+
+# Candle record structure with additional aggressive sum/count fields
+TExtOHLC = dtype([
+    ('DateTime', 'M8[us]'),
     ('Open', float),
     ('High', float),
     ('Low', float),
@@ -38,7 +46,7 @@ TOHLC = dtype([
 
 # Debounced timeseries record structure
 TDebounce = dtype([
-    ('DateTime', 'datetime64[us]'),
+    ('DateTime', 'M8[us]'),
     ('Index', int),
     ('Price', float),
     ('Duration', 'timedelta64[us]'),
@@ -62,15 +70,15 @@ TDebounceSpread = dtype([
 
 # Paired trade record structure
 TPairTrade = dtype([
-    ('X0', int64), ('T0', 'datetime64[us]'), ('Price0', float), ('MidPrice0', float),
-    ('X1', int64), ('T1', 'datetime64[us]'), ('Price1', float), ('MidPrice1', float),
+    ('X0', int64), ('T0', 'M8[us]'), ('Price0', float), ('MidPrice0', float),
+    ('X1', int64), ('T1', 'M8[us]'), ('Price1', float), ('MidPrice1', float),
     ('Size', float)
 ])
 
 # Profit record structure
 TProfit = dtype([
     ('Index', int64),
-    ('DateTime', 'datetime64[us]'),
+    ('DateTime', 'M8[us]'),
     ('RawPnL', float),
     ('MidPnL', float),
     ('Fee', float),

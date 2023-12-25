@@ -6,7 +6,7 @@ from numba import njit
 from numba.typed import List
 from numba.types import int64, float64, Tuple
 
-from simple.types import TTrade, TPairTrade, TProfit, TBidAskDT
+from simple.types import TTrade, TPairTrade, TProfit, TBidAskDT, TOHLC
 from simple.pretty import pmap
 
 
@@ -92,7 +92,7 @@ def npTrades(trades: List) -> NDArray[TPairTrade]:
     return np.array(trades, dtype=TPairTrade).view(np.recarray)
 
 
-def npBacktestMarket(T: NDArray[TBidAskDT], signal: NDArray[float], threshold: float,
+def npBacktestMarket(T: NDArray[TBidAskDT], signal: NDArray[np.float64], threshold: float,
                      maxpos: int = 1, hold: int = None) -> NDArray[TPairTrade]:
     """The numpy wrapper for taker orders backtester"""
 
@@ -101,30 +101,28 @@ def npBacktestMarket(T: NDArray[TBidAskDT], signal: NDArray[float], threshold: f
 
 
 @njit(nogil=True)
-def backtestLimit(T: NDArray[TTrade], qA: NDArray[float], qB: NDArray[float]) -> List[trade_type]:
+def backtestLimit(ts, high, low, qA, qB, maxpos=1) -> List[trade_type]:
     """Vectorized backtester for limit order strategies"""
 
     buys = List.empty_list(signal_type)
     sells = List.empty_list(signal_type)
     trades = List.empty_list(trade_type)
-    ts = T.DateTime.view(np.int64)
     pos: int = 0
 
-    for i in range(len(ts) - 1):
-        price = T.Price[i]
-
-        if price > qA[i]:
-            delta_pos = -min(pos + 1, 1)
-        elif price < qB[i]:
-            delta_pos = min(1 - pos, 1)
+    for i in range(1, len(ts) - 1):
+        # Conditions for position open (up to the specified maxpos size)
+        if high[i] > qA[i]:   # sell
+            delta_pos = -min(pos + maxpos, 1)
+        elif low[i] < qB[i]:  # buy
+            delta_pos = min(maxpos - pos, 1)
         else:
             delta_pos = 0
 
-        k = i + 1
+        k = i - 1   # limit order are executed by previous price, not the future
         if delta_pos > 0:
-            buys.append((k, ts[k], qB[i], qB[i]))
+            buys.append((i, ts[i], qB[k], qB[k]))
         elif delta_pos < 0:
-            sells.append((k, ts[k], qA[i], qA[i]))
+            sells.append((i, ts[i], qA[k], qA[k]))
 
         if len(sells) > 0 and len(buys) > 0:
             buy = buys.pop(0)
@@ -139,10 +137,30 @@ def backtestLimit(T: NDArray[TTrade], qA: NDArray[float], qB: NDArray[float]) ->
     return trades
 
 
-def npBacktestLimit(T: NDArray[TTrade], qA: NDArray[float], qB: NDArray[float]) -> NDArray[TPairTrade]:
-    """Converts trades from the limit-backtester to structured array"""
+def npBacktestLimit(T: NDArray[TTrade], qA: NDArray[np.float64], qB: NDArray[np.float64]) -> NDArray[TPairTrade]:
+    """Returns trades from the limit-backtester as structured array"""
 
-    return npTrades(backtestLimit(T, qA, qB))
+    ts, high, low = usInt(T['DateTime']), T['Price'], T['Price']
+    return npTrades(backtestLimit(ts, high, low, qA, qB))
+
+def npBacktestLimitOHLC(C: NDArray[TOHLC], qA: NDArray[np.float64], qB: NDArray[np.float64]) -> NDArray[TPairTrade]:
+    """Returns trades from the limit-backtester as structured array"""
+
+    ts, high, low = usInt(C['DateTime']), C['High'], C['Low']
+    return npTrades(backtestLimit(ts, high, low, qA, qB))
+
+
+def npOHLC(C) -> NDArray[TOHLC]:
+    """
+    Converts an DataFrame of OHLC (with Open, High, Low, Close fields) to numpy structured array 
+
+    Args:
+        C (ndarray): An array of records.
+
+    Returns:
+        ndarray: An array of OHLC records.
+    """
+    return np.core.records.fromarrays([C.DateTime, C.Open, C.High, C.Low, C.Close], dtype=TOHLC)
 
 
 def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bool = False) -> NDArray[TProfit]:
@@ -193,10 +211,10 @@ def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=False, p
 
         if len(param) == 3:
             level, index, threshold = param
-            trades = backtestMarket(TS, T['Ask'], T['Bid'], signal[level], threshold)
+            trades = backtestMarket(TS, T['Ask'], T['Bid'], signal[level], threshold, maxpos)
         else:
             index, threshold = param
-            trades = backtestMarket(TS, T['Ask'], T['Bid'], signal, threshold)
+            trades = backtestMarket(TS, T['Ask'], T['Bid'], signal, threshold, maxpos)
             
         if inversed:
             rawPnL = sum([(1 / t[2] - 1 / t[6]) * t[8] for t in trades]) * 1000
