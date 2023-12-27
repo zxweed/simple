@@ -355,12 +355,12 @@ def turn(signal: NDArray[np.float64], threshold: float) -> NDArray[np.float64]:
 
 
 @njit(nogil=True)
-def zscore(X: NDArray, window: int) -> NDArray[np.float64]:
+def zscore(X: NDArray, period: int) -> NDArray[np.float64]:
     """
     Efficiently calculates the rolling Z-score.
     
     Parameters:
-    arr (numpy.ndarray): Input array.
+    X (numpy.ndarray): Input array.
     window (int): Window size.
     
     Returns:
@@ -368,20 +368,20 @@ def zscore(X: NDArray, window: int) -> NDArray[np.float64]:
     """
     n = len(X)
     result = np.empty(n)
-    result[:window-1] = np.nan  # Assign NaN to the first few elements
+    result[:period-1] = np.nan  # Assign NaN to the first few elements
 
     # Pre-compute the sum and sum of squares of the first window
-    sum_x = np.sum(X[:window])
-    sum_x2 = np.sum(X[:window]**2)
+    sum_x = np.sum(X[:period])
+    sum_x2 = np.sum(X[:period]**2)
 
-    for i in range(window - 1, n):
-        mean = sum_x / window
-        std = np.sqrt((sum_x2 - sum_x**2 / window) / (window - 1))
+    for i in range(period - 1, n):
+        mean = sum_x / period
+        std = np.sqrt((sum_x2 - sum_x**2 / period) / (period - 1))
         result[i] = (X[i] - mean) / std if std > 0 else 0
 
         # Update the sum and sum of squares for all but the last window
         if i < n - 1:
-            sum_x += X[i + 1] - X[i - window + 1]
-            sum_x2 += X[i + 1]**2 - X[i - window + 1]**2
+            sum_x += X[i + 1] - X[i - period + 1]
+            sum_x2 += X[i + 1]**2 - X[i - period + 1]**2
 
     return result

@@ -73,7 +73,7 @@ def backtestMarket(ts, A, B, signal, threshold, maxpos=1, hold=None) -> List[tra
     return trades
 
 
-def usInt(ts) -> np.ndarray:
+def asInt(ts) -> np.ndarray:
     """Convert time series to microseconds"""
 
     if ts.dtype == np.dtype('M8[us]'):
@@ -96,7 +96,7 @@ def npBacktestMarket(T: NDArray[TBidAskDT], signal: NDArray[np.float64], thresho
                      maxpos: int = 1, hold: int = None) -> NDArray[TPairTrade]:
     """The numpy wrapper for taker orders backtester"""
 
-    trades = backtestMarket(usInt(T['DateTime']), T['Ask'], T['Bid'], signal, threshold, maxpos=maxpos, hold=hold)
+    trades = backtestMarket(asInt(T['DateTime']), T['Ask'], T['Bid'], signal, threshold, maxpos=maxpos, hold=hold)
     return npTrades(trades)
 
 
@@ -140,13 +140,13 @@ def backtestLimit(ts, high, low, qA, qB, maxpos=1) -> List[trade_type]:
 def npBacktestLimit(T: NDArray[TTrade], qA: NDArray[np.float64], qB: NDArray[np.float64]) -> NDArray[TPairTrade]:
     """Returns trades from the limit-backtester as structured array"""
 
-    ts, high, low = usInt(T['DateTime']), T['Price'], T['Price']
+    ts, high, low = asInt(T['DateTime']), T['Price'], T['Price']
     return npTrades(backtestLimit(ts, high, low, qA, qB))
 
 def npBacktestLimitOHLC(C: NDArray[TOHLC], qA: NDArray[np.float64], qB: NDArray[np.float64]) -> NDArray[TPairTrade]:
     """Returns trades from the limit-backtester as structured array"""
 
-    ts, high, low = usInt(C['DateTime']), C['High'], C['Low']
+    ts, high, low = asInt(C['DateTime']), C['High'], C['Low']
     return npTrades(backtestLimit(ts, high, low, qA, qB))
 
 
@@ -160,7 +160,11 @@ def npOHLC(C) -> NDArray[TOHLC]:
     Returns:
         ndarray: An array of OHLC records.
     """
-    return np.core.records.fromarrays([C.DateTime, C.Open, C.High, C.Low, C.Close], dtype=TOHLC)
+    if 'DateTime' in C.columns:
+        dt = 'DateTime'
+    elif 'timestamp' in C.columns:
+        dt = 'timestamp'
+    return np.core.records.fromarrays([C[dt], C.Open, C.High, C.Low, C.Close], dtype=TOHLC)
 
 
 def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bool = False) -> NDArray[TProfit]:
@@ -203,7 +207,7 @@ def getProfitDict(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed
 def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=False, parallel=True) -> pd.DataFrame:
     """Parallel evaluation of thresholds*signals by 2D-grid"""
 
-    TS = usInt(T['DateTime'])
+    TS = asInt(T['DateTime'])
     
     @njit(nogil=True)
     def internalProfit(param):
