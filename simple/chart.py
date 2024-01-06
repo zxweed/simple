@@ -128,7 +128,7 @@ def getRowCount(**lines) -> int:
 
 
 def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
-                template: str = default_template, equal: bool = False,
+                template: str = default_template, equal: bool = False, shared_xaxes: bool = True,
                 **lines) -> FigureWidgetResampler:
     """Create interactive dynamic chart widget with horizontal subplots"""
 
@@ -146,7 +146,8 @@ def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
 
     specs = list(repeat([{"secondary_y": True}], rows))
     fig = FigureWidgetResampler(
-        make_subplots(rows=rows, cols=1, row_heights=row_heights, vertical_spacing=0.01, shared_xaxes=True, specs=specs))
+        make_subplots(rows=rows, cols=1, row_heights=row_heights, vertical_spacing=0.01, 
+                      shared_xaxes=shared_xaxes, specs=specs))
 
     fig.update_layout(autosize=True, height=height, template=template, title=title,
                       legend=default_legend, margin=default_margin)
