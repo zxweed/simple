@@ -86,6 +86,8 @@ def addLines(fig: go.FigureWidget, **lines):
                 line_class = Marker
             elif line.get('mode') == 'candlestick':
                 line_class = go.Candlestick
+            elif line.get('mode') == 'bar':
+                line_class = go.Bar
             else:
                 line_class = Line
 
@@ -112,8 +114,16 @@ def addLines(fig: go.FigureWidget, **lines):
                 if 'row' in trace_dict:
                     line_dict['row'] = trace_dict['row']
                     line_dict['col'] = 1
-
                 fig.add_candlestick(name=line_name, **line_dict)
+
+            elif line_class == go.Bar:
+                if 'x' not in line_dict:
+                    line_dict['x'] = np.arange(len(line_dict['y']))
+                if 'row' in trace_dict:
+                    line_dict['row'] = trace_dict['row']
+                    line_dict['col'] = 1
+                fig.add_bar(name=line_name, **line_dict)
+
             else:
                 fig.add_trace(go.Scattergl(name=line_name, **scatter_dict), limit_to_view=True, **trace_dict)
 
@@ -146,7 +156,7 @@ def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
 
     specs = list(repeat([{"secondary_y": True}], rows))
     fig = FigureWidgetResampler(
-        make_subplots(rows=rows, cols=1, row_heights=row_heights, vertical_spacing=0.01, 
+        make_subplots(rows=rows, cols=1, row_heights=row_heights, vertical_spacing=0, 
                       shared_xaxes=shared_xaxes, specs=specs))
 
     fig.update_layout(autosize=True, height=height, template=template, title=title,
@@ -176,8 +186,24 @@ def updateFigure(fig: go.FigureWidget, **lines):
             y = line['y'] if type(line) == dict else line
             if name in names:
                 k = names.index(name)
-                fig.hf_data[k]['x'] = line.get('x', np.arange(len(y))) if type(line) == dict else np.arange(len(y))
-                fig.hf_data[k]['y'] = y
+                if type(fig.data[k]) == go.Candlestick:
+                    fig.data[k]['x'] = line.get('x', np.arange(len(y))) if type(line) == dict else np.arange(len(y))
+                    if 'open' in line:
+                        fig.data[k]['open'] = line['open']
+                    if 'high' in line:
+                        fig.data[k]['high'] = line['high']
+                    if 'low' in line:
+                        fig.data[k]['low'] = line['low']
+                    if 'close' in line:
+                        fig.data[k]['close'] = line['close']
+
+                elif type(fig.data[k]) == go.Bar:
+                    fig.data[k]['x'] = line.get('x', np.arange(len(y))) if type(line) == dict else np.arange(len(y))
+                    fig.data[k]['y'] = y
+                
+                else:
+                    fig.hf_data[k]['x'] = line.get('x', np.arange(len(y))) if type(line) == dict else np.arange(len(y))
+                    fig.hf_data[k]['y'] = y
 
             elif not name.startswith('_') and iterable(y):
                 # add a new one if it doesn't already exist and has non-prefixed name

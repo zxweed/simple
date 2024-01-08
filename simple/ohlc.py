@@ -1,11 +1,11 @@
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
-from simple.types import TTrade, TDebounce, TOHLC
+from simple.types import TTrade, TDebounce, TExtOHLC
 
 
 @njit(nogil=True)
-def resampleVolume(T: NDArray[TTrade], threshold: int, OHLC: NDArray[TOHLC]) -> int:
+def resampleVolume(T: NDArray[TTrade], threshold: int, OHLC: NDArray[TExtOHLC]) -> int:
     t = c = size = count = 0
 
     while t < len(T):
@@ -211,8 +211,8 @@ def renko(T: NDArray[TTrade], step: int = 1) -> np.array:
     return RenkoL
 
 
-def ohlcVolume(T: NDArray[TTrade], threshold: int) -> np.array:
-    OHLC = np.zeros(len(T), dtype=TOHLC)
+def ohlcVolume(T: NDArray[TTrade], threshold: int) -> NDArray[TExtOHLC]:
+    OHLC = np.zeros(len(T), dtype=TExtOHLC)
     c = resampleVolume(T, threshold, OHLC)
     OHLC.resize(c, refcheck=False)
     return OHLC.view(np.recarray)
