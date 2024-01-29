@@ -232,7 +232,7 @@ def tickVolume(T: NDArray[TTrade], threshold: int) -> np.array:
     return OHLC[['DateTime', 'Close']].view(np.recarray)
 
 
-@njit
+@njit(nogil=True)
 def npJoin(S1, S2: np.array) -> int:
     """
     Returns indexes for joining two timeseries
