@@ -6,7 +6,7 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 
 setup(
     name="simple",
-    version="0.5",
+    version="0.6",
     author="zxweed",
     author_email="zxweed@gmail.com",
     description="A package that implements some simple trading functions",
@@ -17,6 +17,8 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
