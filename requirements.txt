@@ -16,3 +16,4 @@ psutil
 pyarrow
 fastparquet
 plotly_resampler
+jupyterlab<4
