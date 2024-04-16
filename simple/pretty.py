@@ -275,7 +275,7 @@ def plotImportance(model, names=None, top=20, palette='Blues_r', ax=None):
     if hasattr(model, 'feature_importances_'):
         # Sort the feature importances in descending order and select the top features
         f = pd.Series(model.feature_importances_, index=names).sort_values(ascending=False)[:top]
-        sns.barplot(y=f.index, x=f, palette=palette, ax=ax).set(ylabel='Feature importance')
+        sns.barplot(y=f.index, hue=f.index, x=f, palette=palette, ax=ax).set(ylabel='Feature importance')
     else:
          print("Selected model does not support feature_importances_")
 
