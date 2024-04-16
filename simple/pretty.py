@@ -280,9 +280,34 @@ def plotImportance(model, names=None, top=20, palette='Blues_r', ax=None):
          print("Selected model does not support feature_importances_")
 
 
+def getROC(model, X_test, y_test):
+    """Calculate the Receiver Operating Characteristic (ROC) curve for a multi-class classification model.
+    
+    Parameters:
+        model (object): The trained classification model.
+        X_test (array-like): The feature matrix of the test set.
+        y_test (array-like): The true labels of the test set.
+        
+    Returns dictionary containing the false positive rate (fpr), true positive rate (tpr)
+    and the area under the ROC curve (roc_auc) for each class.
+    """
+    y_test_binarized = label_binarize(y_test, classes=np.unique(y_test))
+    n_classes = y_test_binarized.shape[1]
+    fpr = [0] * n_classes
+    tpr = [0] * n_classes
+    roc_auc = [0] * n_classes
+    y_scores = model.predict_proba(X_test)
+
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(y_test_binarized[:, i], y_scores[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    return fpr, tpr, roc_auc
+
+
 def plotROC(model, X_test, y_test):
     """
-    Generate the Receiver Operating Characteristic (ROC) curve for a multi-class classification model.
+    Plot the Receiver Operating Characteristic (ROC) curve for a multi-class classification model.
     
     Parameters:
         model (object): The trained classification model.
@@ -292,18 +317,8 @@ def plotROC(model, X_test, y_test):
     Returns:
         fig (object): The matplotlib figure object containing the ROC curve and the confusion matrix.
     """
-    y_test_binarized = label_binarize(y_test, classes=np.unique(y_test))
-
-    n_classes = y_test_binarized.shape[1]
-    fpr = dict()
-    tpr = dict()
-    roc_auc = dict()
-
-    y_pred, y_scores = model.predict(X_test), model.predict_proba(X_test)
-
-    for i in range(n_classes):
-        fpr[i], tpr[i], _ = roc_curve(y_test_binarized[:, i], y_scores[:, i])
-        roc_auc[i] = auc(fpr[i], tpr[i])
+    fpr, tpr, roc_auc = getROC(model, X_test, y_test)
+    n_classes = len(roc_auc)
 
     fig, ax = plt.subplots(1, 2, figsize=(14, 5))
     colors = cycle(['blue', 'red', 'green', 'orange', 'cyan', 'magenta'])
@@ -320,6 +335,7 @@ def plotROC(model, X_test, y_test):
     ax[0].legend(loc="lower right")
 
     # plot confusion matrix
+    y_pred = model.predict(X_test)
     conf_matrix = confusion_matrix(y_test, y_pred)
     sns.heatmap(conf_matrix, annot=True, cmap='Blues', fmt="g", ax=ax[1], linewidths=3, linecolor='white');
 
