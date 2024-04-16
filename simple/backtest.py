@@ -5,6 +5,7 @@ from numpy.typing import NDArray
 from numba import njit
 from numba.typed import List
 from numba.types import int64, float64, Tuple
+from sklearn.metrics import mean_squared_error, r2_score
 
 from simple.types import TTrade, TPairTrade, TProfit, TBidAskDT, TOHLC
 from simple.pretty import pmap
@@ -270,3 +271,33 @@ def getShort(trades: NDArray[TPairTrade]) -> dict:
     ShortExit = trades[['X1', 'Price1']][trades.Size > 0]
     return {'x': np.concatenate((ShortEntry.X0, ShortExit.X1)),
             'y': np.concatenate((ShortEntry.Price0, ShortExit.Price1))}
+
+
+def pdAccuracy(X: NDArray, Y: NDArray) -> float:
+    """Directional accuracy"""
+    Q = pd.DataFrame(np.sign(X) == np.sign(Y)).value_counts()
+    return np.round(Q[True] / Q.sum() * 100, 3)
+
+
+def getMetrics(y_true: NDArray, y_pred: NDArray) -> tuple:
+    """Calculates RMSE, Correlation and Directional Accuracy metrics"""
+
+    rmse = np.round(np.sqrt(mean_squared_error(y_true, y_pred)), 6)
+    correlation = np.round(np.corrcoef(y_true, y_pred)[0, 1] * 100, 3)
+    accuracy = pdAccuracy(y_true, y_pred)
+    rsquared = np.round(r2_score(y_true, y_pred) * 100, 3)
+    return rmse, correlation, accuracy, rsquared
+
+
+def dictMetrics(y_true: NDArray, y_pred: NDArray, sep: int) -> dict:
+    """Returns dictionary with the statistical metrics"""
+
+    T0, T1 = y_true[:sep], y_true[sep:]
+    Y0, Y1 = y_pred[:sep], y_pred[sep:]
+
+    rmse0, corr0, acc0, rsquared0 = getMetrics(T0, Y0)
+    rmse1, corr1, acc1, rsquared1 = getMetrics(T1, Y1)
+    return {
+        'RMSE(t)': rmse0, 'Corr(t)': corr0, 'Acc(t)': acc0, 'R²(t)' : rsquared0,
+        'RMSE(v)': rmse1, 'Corr(v)': corr1, 'Acc(v)': acc1, 'R²(v)' : rsquared1
+    }
