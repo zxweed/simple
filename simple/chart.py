@@ -43,13 +43,13 @@ default_styles = {
     'Bid': dict(color='green', opacity=0.25, shape='hv'),
     'qA': dict(color='red', opacity=0.5, dash='dot', shape='hv'),
     'qB': dict(color='green', opacity=0.5, dash='dot', shape='hv'),
-    
+
     'Signal': dict(color='blue', opacity=0.5, row=2),
-    
+
     'MidPnL': dict(color='darkgray', width=2, opacity=0.4, secondary_y=True, shape='hv', connectgaps=True),
     'RawPnL': dict(color='gray', width=2, opacity=0.4, secondary_y=True, shape='hv', connectgaps=True),
     'Profit': dict(color='blue', width=3, opacity=0.5, secondary_y=True, shape='hv', connectgaps=True),
-    
+
     'EnterLong': dict(mode='markers', marker=dict(symbol='triangle-up', size=6, color='green', line_color='darkgreen', line_width=1)),
     'ExitLong': dict(mode='markers', marker=dict(symbol='x', size=5, color='green', line_color='darkgreen', line_width=1)),
     'EnterShort': dict(mode='markers', marker=dict(symbol='triangle-down', size=6, color='red', line_color='darkred', line_width=1)),
@@ -73,10 +73,10 @@ def addLines(fig: go.FigureWidget, **lines):
         line = lines[line_name]
         if type(line) != dict:
             line = {'hf_y': line}  # if there is only one value specified - interpret as Y series
-            
+
         # if predefined name specified - fill missed attributes from default_styles
         line = {**default_styles.get(line_name, {}), **line}
-            
+
         # layout parameters can be redefined in the 'lines' parameters also
         if line_name == 'layout':
             for param_name in line:
@@ -278,7 +278,7 @@ def chartProfit(trades: NDArray[TPairTrade], use_time: bool = False) -> dict:
 
     P = getProfit(trades)
     x = P.DateTime if use_time else P.Index
-    
+
     return {
         'Profit': dict(x=x, y=P.Profit.cumsum()),
         'MidPnL': dict(x=x, y=P.MidPnL.cumsum())

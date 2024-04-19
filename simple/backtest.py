@@ -30,7 +30,7 @@ def backtestMarket(ts, A, B, signal, threshold, maxpos=1, hold=None) -> List[tra
 
     for i in range(len(ts) - 1):
         delta_pos: int = 0
-            
+
         # Conditions for open position
         if signal[i] > threshold:
             delta_pos = min(maxpos - pos, 1)
@@ -190,7 +190,7 @@ def getProfit(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bo
 
 def getProfitDict(trades: NDArray[TPairTrade], fee_percent=default_fee, inversed: bool = False) -> dict:
     """Returns profit values for trades in dictionary form"""
-    
+
     P: NDArray[TProfit] = getProfit(trades, fee_percent, inversed)
     Profit = P['RawPnL'] - P['Fee']
     return {
@@ -209,7 +209,7 @@ def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=False, p
     """Parallel evaluation of thresholds*signals by 2D-grid"""
 
     TS = asInt(T['DateTime'])
-    
+
     @njit(nogil=True)
     def internalProfit(param):
         """Calculates profit metrics"""
@@ -220,7 +220,7 @@ def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=False, p
         else:
             index, threshold = param
             trades = backtestMarket(TS, T['Ask'], T['Bid'], signal, threshold, maxpos)
-            
+
         if inversed:
             rawPnL = sum([(1 / t[2] - 1 / t[6]) * t[8] for t in trades]) * 1000
             midPnL = sum([(1 / t[3] - 1 / t[7]) * t[8] for t in trades]) * 1000
@@ -236,13 +236,13 @@ def pdThresholdMarket(T: NDArray[TBidAskDT], signal, maxpos=1, inversed=False, p
         Thresholds = np.linspace(0, np.percentile(np.abs(signal), 99.98), 100)
         Param = [(index, threshold) for index, threshold in enumerate(Thresholds)]
         prefix = ['Index', 'Threshold']
-    
+
     elif len(signal.shape) == 2:
         Thresholds = [np.linspace(0, np.percentile(np.abs(y), 99.98), 100) for y in signal]
         Levels = range(len(signal))
         Param = [(level, index, threshold) for level, thresholds in zip(Levels, Thresholds) for index, threshold in enumerate(thresholds)]
         prefix = ['Level', 'Index', 'Threshold']
-    
+
     else:
         print('The signal must be 1D or 2D numpy array')
         return

@@ -130,7 +130,7 @@ def debounce(T: NDArray[TTrade], step_price: float = None) -> NDArray[TDebounce]
     return np.resize(DebA, c).view(np.recarray)
 
 
-#@njit(nogil=True)
+@njit(nogil=True)
 def resampleRenko2(T: NDArray[TTrade], DebA: NDArray[TDebounce], step: float = 1) -> int:
     k = t = c = 0
     price = T.Price[k]

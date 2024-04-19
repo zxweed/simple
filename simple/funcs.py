@@ -110,7 +110,7 @@ def tickSpeed(T: NDArray[TTrade], period: int = 1000, log: bool = False) -> NDAr
         t0, t1 = T.DateTime[k], T.DateTime[i]
         delta = np.int64(t1 - t0)
         resultA[i] = (T.Price[i] - T.Price[k]) * 1e6 / delta if delta > 0 else 0
-        
+
         if log:
             if resultA[i] > 1:
                 resultA[i] = np.log(resultA[i]) + 1
@@ -350,7 +350,7 @@ def turn(signal: NDArray[np.float64], threshold: float) -> NDArray[np.float64]:
             result[i] = -1
         elif signal[i] > signal[k] and signal[i] < -threshold:
             result[i] = 1
-        
+
     return result
 
 
@@ -358,11 +358,11 @@ def turn(signal: NDArray[np.float64], threshold: float) -> NDArray[np.float64]:
 def zscore(X: NDArray, period: int) -> NDArray[np.float64]:
     """
     Efficiently calculates the rolling Z-score.
-    
+
     Parameters:
     X (numpy.ndarray): Input array.
     window (int): Window size.
-    
+
     Returns:
     numpy.ndarray: Array with the rolling Z-scores.
     """

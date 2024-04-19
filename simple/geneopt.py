@@ -31,16 +31,16 @@ class Opt:
 def inclusive_range(*args):
     """
     Generates an inclusive range of numbers based on the given arguments.
-    
+
     Args:
         *args: The arguments can be passed in any of the following formats:
             - (stop): Generates numbers from 0 to stop-1 with a step of 1.
             - (start, stop): Generates numbers from start to stop-1 with a step of 1.
             - (start, stop, step): Generates numbers from start to stop-1 with a step of step.
-    
+
     Yields:
         int: The next number in the inclusive range.
-    
+
     Raises:
         TypeError: If no arguments are passed or if more than 3 arguments are passed.
     """

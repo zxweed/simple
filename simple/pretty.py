@@ -139,10 +139,10 @@ def pp(X: pd.DataFrame, float_format: str = None, h_subset=None) -> Styler:
 def get_sides(n: int) -> tuple:
     """
     Returns the width and height of a rectangle that contains n subplots.
-    
+
     Parameters:
     n (int): The number of subplots.
-    
+
     Returns:
     tuple: A tuple containing the width and height of the rectangle.
     """
@@ -171,7 +171,7 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
                  fig_width=16, text_color='blue', stroke: bool = False) -> plt.figure:
     """
     Create grid figure with heatmap subplots.
-    
+
     Parameters:
         df (NDArray or DataFrame): The input data.
         x_name (str): The name of the column to be used as x-axis for each subplot.
@@ -183,14 +183,14 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
         fig_width (int, optional): The width of the figure.
         text_color (str, optional): The color of the text.
         stroke (bool, optional): Whether to add a stroke to the text.
-    
+
     Returns:
         plt.figure: The figure object.
     """
 
     Z = np.unique(df[z_name]) if z_name else None
     G = np.unique(df[g_name]) if g_name else None
-    
+
     # determine number of rows and columns
     if not z_name and not g_name:
         # single plot
@@ -244,7 +244,7 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
 
         if len(pvt) > 0:
             ax.imshow(pvt, cmap='RdYlGn', vmin=-h, vmax=h)
-            
+
             # place text in the center of heatmap
             y, x = [s/2 for s in pvt.shape]
             text += f'\nmax({value_name})={pvt.max():,.1f}\nmean({value_name})={pvt.mean():,.1f}'
@@ -282,12 +282,12 @@ def plotImportance(model, names=None, top=20, palette='Blues_r', ax=None):
 
 def getROC(model, X_test, y_test):
     """Calculate the Receiver Operating Characteristic (ROC) curve for a multi-class classification model.
-    
+
     Parameters:
         model (object): The trained classification model.
         X_test (array-like): The feature matrix of the test set.
         y_test (array-like): The true labels of the test set.
-        
+
     Returns dictionary containing the false positive rate (fpr), true positive rate (tpr)
     and the area under the ROC curve (roc_auc) for each class.
     """
@@ -308,12 +308,12 @@ def getROC(model, X_test, y_test):
 def plotROC(model, X_test, y_test):
     """
     Plot the Receiver Operating Characteristic (ROC) curve for a multi-class classification model.
-    
+
     Parameters:
         model (object): The trained classification model.
         X_test (array-like): The feature matrix of the test set.
         y_test (array-like): The true labels of the test set.
-        
+
     Returns:
         fig (object): The matplotlib figure object containing the ROC curve and the confusion matrix.
     """
@@ -327,7 +327,7 @@ def plotROC(model, X_test, y_test):
     for i, color in zip(range(n_classes), colors):
         label = 'ROC curve of class {0} (area = {1:0.2f})'.format(i, roc_auc[i])
         ax[0].plot(fpr[i], tpr[i], color=color, lw=2, alpha=0.5, label=label)
-        
+
     ax[0].plot([0, 1], [0, 1], color='black', lw=1, linestyle='--')
     ax[0].set_xlabel('False Positive Rate')
     ax[0].set_ylabel('True Positive Rate')
@@ -342,6 +342,6 @@ def plotROC(model, X_test, y_test):
     ax[1].set_title('Confusion Matrix')
     ax[1].set_xlabel('Predicted Label')
     ax[1].set_ylabel('True Label')
-    
+
     plt.close(fig)
     return fig
