@@ -1,12 +1,13 @@
 from setuptools import setup
 import os
+from simple import __version__
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
 setup(
     name="simple",
-    version="0.6",
+    version=__version__,
     author="zxweed",
     author_email="zxweed@gmail.com",
     description="A package that implements some simple trading functions",
