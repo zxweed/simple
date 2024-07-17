@@ -2,4 +2,4 @@
 
 __docformat__ = "numpy"
 __author__ = "zxweed"
-__version__ = "0.4"
+__version__ = "0.5"
