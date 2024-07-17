@@ -71,6 +71,9 @@ def addLines(fig: go.FigureWidget, **lines):
 
     for line_name in lines:
         line = lines[line_name]
+        if type(line) is not dict and not line.flags['C_CONTIGUOUS']:
+            line = np.ascontiguousarray(line)
+
         if type(line) != dict:
             line = {'hf_y': line}  # if there is only one value specified - interpret as Y series
 
