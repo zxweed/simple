@@ -16,6 +16,7 @@ from joblib import Parallel, delayed, cpu_count
 from psutil import cpu_percent
 from datetime import datetime, timedelta
 from tqdm.auto import tqdm
+from multiprocessing.shared_memory import SharedMemory
 
 
 class tqdmParallel(Parallel):
@@ -63,6 +64,14 @@ def pmap(func: callable, *args, **kwargs):
     with tqdmParallel(total=len(param_list), **kwargs) as P:
         FUNC = delayed(func)
         return P(FUNC(*tpl(param)) for param in param_list)
+
+
+def asShared(X: np.ndarray, shm_name=None) -> np.ndarray:
+    """Create shared memory copy of the array to improve further parallel performance"""
+    shm = SharedMemory(shm_name, create=True, size=len(X) * X.dtype.itemsize)
+    result = np.ndarray(X.shape, dtype=X.dtype, buffer=shm.buf)
+    result[:] = X
+    return result, shm
 
 
 def iterable(obj):
