@@ -12,6 +12,7 @@ api = api_endpoint + '/klines?&symbol={ticker}&interval={interval}&startTime={st
 hist_endpoint = 'https://data.binance.vision/data'
 hist_fut_api = hist_endpoint + '/futures/um/monthly/klines/{ticker}/{frame}/{ticker}-{frame}-{month}.zip'
 hist_spot_api = hist_endpoint + '/spot/monthly/klines/{ticker}/{frame}/{ticker}-{frame}-{month}.zip'
+n_jobs = 8
 
 
 def _HistOHLC(month, ticker, frame, close_only=False, spot=False):
@@ -38,7 +39,7 @@ def _HistOHLC(month, ticker, frame, close_only=False, spot=False):
 
 def getHistMonth(start_date, end_date, ticker, frame, close_only=False, spot=False):
     months = [s.strftime('%Y-%m') for s in pd.date_range(start_date, end_date, freq='MS')]
-    lst = ThreadPool(16).map(partial(_HistOHLC, ticker=ticker, frame=frame, close_only=close_only, spot=spot), months)
+    lst = ThreadPool(n_jobs).map(partial(_HistOHLC, ticker=ticker, frame=frame, close_only=close_only, spot=spot), months)
     lst = [item for item in lst if item is not None]
     if len(lst) > 0:
         return pd.concat(lst)
