@@ -3,16 +3,17 @@ import pandas as pd
 from pandas.io.formats.style import Styler
 import numpy as np
 from numpy.typing import NDArray
+from typing import Union, List
 from itertools import product, zip_longest, cycle, product
 from math import ceil, sqrt
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.patheffects as pe
 import seaborn as sns
-import inspect
+
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.preprocessing import label_binarize
-from joblib import Parallel, delayed, cpu_count
+from joblib import Parallel, delayed
 from psutil import cpu_percent
 from datetime import datetime, timedelta
 from tqdm.auto import tqdm
@@ -72,6 +73,24 @@ def asShared(X: np.ndarray, shm_name=None) -> np.ndarray:
     result = np.ndarray(X.shape, dtype=X.dtype, buffer=shm.buf)
     result[:] = X
     return result, shm
+
+
+def common_type(types: Union[list, set]) -> type:
+    """
+    Find the common type among the given types.
+    Args:
+        types (list): A list of types.
+    Returns:
+        type: The common type among the given types.
+    """
+    if all(issubclass(t, int) for t in types):
+        return int
+    elif any(issubclass(t, str) for t in types):
+        return np.dtype('U32')
+    elif any(issubclass(t, float) for t in types):
+        return float
+    else:
+        return object
 
 
 def iterable(obj):

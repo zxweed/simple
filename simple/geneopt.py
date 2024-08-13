@@ -9,7 +9,7 @@ from contextlib import closing
 from tqdm.auto import tqdm
 from itertools import product, zip_longest
 from functools import partial
-from alquant.utils import tqdmParallel, pmap, common_type
+from simple.pretty import tqdmParallel, pmap, common_type
 from joblib import delayed
 from psutil import cpu_percent
 
