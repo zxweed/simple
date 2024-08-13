@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
 
-from deap import creator, base, tools
-from deap.algorithms import varAnd, eaSimple
-import inspect
+import numpy as np
+from inspect import getfullargspec
 from multiprocessing.pool import ThreadPool
+from multiprocessing import Pool, Manager
 from random import randrange, randint, uniform
 from contextlib import closing
 from tqdm.auto import tqdm
-from itertools import zip_longest
-import numpy as np
-import pandas as pd
-from itertools import product
-from simple.pretty import tqdmParallel
+from itertools import product, zip_longest
+from functools import partial
+from alquant.utils import tqdmParallel, pmap, common_type
 from joblib import delayed
 from psutil import cpu_percent
 
+from deap import creator, base, tools
+from deap.algorithms import varAnd
+import optuna
+optuna.logging.set_verbosity(optuna.logging.ERROR)
 
 class Opt:
     def __init__(self, target):
         self.target = target.__wrapped__ if hasattr(target, '__wrapped__') else target
-        spec = inspect.getfullargspec(self.target)
+        spec = getfullargspec(self.target)
         self.args = spec.args
         self.log_columns = self.args
         self.annotations = spec.annotations
@@ -31,16 +33,16 @@ class Opt:
 def inclusive_range(*args):
     """
     Generates an inclusive range of numbers based on the given arguments.
-
+    
     Args:
         *args: The arguments can be passed in any of the following formats:
             - (stop): Generates numbers from 0 to stop-1 with a step of 1.
             - (start, stop): Generates numbers from start to stop-1 with a step of 1.
             - (start, stop, step): Generates numbers from start to stop-1 with a step of step.
-
+    
     Yields:
         int: The next number in the inclusive range.
-
+    
     Raises:
         TypeError: If no arguments are passed or if more than 3 arguments are passed.
     """
@@ -102,7 +104,7 @@ class GeneOpt(Opt):
         result_dict = self.target(*individual)
         return result_dict,
 
-    def maximize(self, population_size=128, generations=5, what: str = 'Profit', callback: callable = None):
+    def maximize(self, population_size=128, generations=5, what: str='Profit', callback: callable = None):
         """
         Maximizes the fitness value of the target function using a genetic algorithm.
 
@@ -110,7 +112,7 @@ class GeneOpt(Opt):
             population_size (int): The size of the population. Default is 128.
             generations (int): The number of generations to run the algorithm. Default is 5.
             what (str): The value name to maximize (if the fitness function returns dict). Default is 'Profit'.
-            callback (callable): A callback function to be called after each generation (may be used to update chart)
+            callback (callable): A callback function to be called after each generation (can be used to update chart)
 
         Returns:
             dict: A dictionary containing the best individual found by the algorithm.
@@ -119,7 +121,6 @@ class GeneOpt(Opt):
         creator.create("Individual", list, fitness=creator.FitnessMax)
 
         toolbox = base.Toolbox()
-
         toolbox.register("individual", tools.initIterate, creator.Individual, self.genIndividual)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
         toolbox.register("evaluate", self.evalOneMax)
@@ -128,7 +129,7 @@ class GeneOpt(Opt):
         toolbox.register("select", tools.selTournament, tournsize=5)
         population = toolbox.population(n=population_size)
 
-        with closing(ThreadPool()) as P:
+        with closing(Pool()) as P:
             toolbox.register("map", P.map)
 
             pbar = tqdm(range(generations))
@@ -166,3 +167,84 @@ class GeneOpt(Opt):
         del creator.Individual
 
         return dict(zip(self.args, tools.selBest(population, k=1)[0]))
+
+
+def _suggest(trial, key, value):
+    """create trial.suggest_XXX object for specified value"""
+
+    if type(value) is list:
+        return trial.suggest_categorical(key, value)
+    elif type(value) is tuple and len(value) >= 2:
+        if isinstance(value[0], int) and isinstance(value[1], int):
+            return trial.suggest_int(key, value[0], value[1])
+        else:
+            return trial.suggest_float(key, value[0], value[1])
+
+
+class TOptuna(Opt):
+    """Optuna-based bayesian optimization class"""
+
+    def __init__(self, target, storage_url='sqlite:///optuna.db', study_name=None, what=None, direction='maximize'):
+        super().__init__(target)
+        self.log = Manager().list()
+        self.what = what
+        self.study = optuna.create_study(
+            study_name=study_name,
+            storage=storage_url,
+            load_if_exists=True,
+            direction=direction
+        )
+
+    def objective(self, trial):
+        """run one trial with optuna-sampled parameter values"""
+        params = {key: _suggest(trial, key, value) for key, value in self.defaults.items()}
+        value = self.target(**params)
+        self.log.append((*params.values(), value))
+
+        if type(value) is dict:
+            if self.what is None:
+                result = value[list(value.keys())[0]]   # use the first dict value as fitness
+            else:
+                result = value[self.what]   # use the 'what' field value
+        elif type(value) is list or type(value) is tuple:
+            if self.what is None:
+                result = value[0]
+            else:
+                result = value[self.what]
+        else:
+            result = value
+
+        return result
+
+    def bestValue(self):
+        return self.study.best_value
+
+    def run(self, attempts=128, n_jobs=-1, n_trials=1, backend='multiprocessing'):
+        """parallel optuna-based bayesian optimization"""
+        pmap(
+            partial(self.study.optimize, n_trials=n_trials),
+            [self.objective] * attempts,
+            postfix={self.what: self.bestValue} if self.what is not None else {'value': self.bestValue},
+            n_jobs=n_jobs,
+            backend=backend
+        )
+        return self.study.best_params
+
+
+def optrun(target, what=None, direction='maximize', **kwargs):
+    """single-line func wrapper for TOptuna"""
+    G = TOptuna(target, what=what, direction=direction)
+    G.run(**kwargs)
+
+    # expand dicts from the log to values if necessary
+    value = G.log[0][-1]
+    if type(value) is dict:
+        result_list = [(*p[:-1], *p[-1].values()) for p in G.log]
+        columns = G.args + list(value.keys())
+    else:
+        result_list = G.log[:]
+        columns = G.args + ['value']
+
+    # create structured array for result
+    dtype = [(col, common_type(set([type(r[i]) for r in result_list]))) for i, col in enumerate(columns)]
+    return np.array(result_list, dtype=dtype).view(np.recarray)
