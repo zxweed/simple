@@ -21,31 +21,38 @@ from multiprocessing.shared_memory import SharedMemory
 
 
 class tqdmParallel(Parallel):
-    """Show progress bar when parallel processing"""
+    """Shows progress bar when parallel processing, can be used instead of joblib.Parallel class"""
 
-    def __init__(self, n_jobs=-1, progress=True, total=None, postfix=None, *args, **kwargs):
-        self._progress = progress
-        self._total = total
-        self._lasttime = datetime.now()
-        self._postfix = postfix if type(postfix) == dict else {'name': postfix} if postfix is not None else None
-        super().__init__(n_jobs=n_jobs, *args, **kwargs)
+    def __init__(self, progress=True, total=None, postfix=None, **kwargs):
+        self.progress = progress
+        self.total = total
+        self.lasttime = datetime.now()
+        self.postfix = postfix if type(postfix) is dict else {'name': postfix} if postfix is not None else None
+        super().__init__(**kwargs)
 
     def __call__(self, *args, **kwargs):
-        with tqdm(disable=not self._progress, total=self._total) as self._pbar:
+        with tqdm(disable=not self.progress, total=self.total) as self._pbar:
             return Parallel.__call__(self, *args, **kwargs)
 
     def print_progress(self):
-        if self._total is None:
+        if self.total is None:
             self._pbar.total = self.n_dispatched_tasks
         self._pbar.n = self.n_completed_tasks
 
-        if datetime.now() > self._lasttime + timedelta(milliseconds=500):
+        if datetime.now() > self.lasttime + timedelta(milliseconds=500):
             postfix = {'cpu': f'{cpu_percent():1.0f}%'}
-            if self._postfix is not None:
-                postfix = {**postfix, **self._postfix}  # merge dict operator with python 3.8 compatibility
+
+            # add user specified postfix values to the progress bar
+            if self.postfix is not None:
+                # evaluate postfix values if callables was specified
+                if isinstance(self.postfix, dict):
+                    user_postfix = {key: value() if callable(value) else value for key, value in self.postfix.items()}
+                else:
+                    user_postfix = {'value': self.postfix() if callable(self.postfix) else self.postfix}
+                postfix = {**postfix, **user_postfix}  # merge dict operator with python 3.8 compatibility
 
             self._pbar.set_postfix(postfix, refresh=True)
-            self._lasttime = datetime.now()
+            self.lasttime = datetime.now()
 
 
 def tpl(x):
