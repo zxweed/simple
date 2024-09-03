@@ -159,6 +159,18 @@ def background(self, scale='Linear', cmap='RdYlGn', **css) -> pd.DataFrame:
 def hline(row, color='black', width='1px'): 
     return [f"border-bottom: {width} solid {color};" for _ in row]
 
+def add_vlines(indices: list, props = 'border-left: 1px solid lightgray;') -> Styler:
+    """
+    Add vertical lines to the styled DataFrame
+    Usage example:
+        P.style.format(custom_format).set_table_styles(add_vlines([1,5,6]))
+    """
+    styles = []
+    for i in indices:
+        styles.append({'selector': f'th.col{i}', 'props': props})
+        styles.append({'selector': f'td.col{i}', 'props': props})
+    return styles
+
 
 def pp(X: pd.DataFrame, float_format: str = None, h_subset=None) -> Styler:
     """Pretty print pandas dataframe with ability to stroke some cells"""
