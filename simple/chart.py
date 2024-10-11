@@ -2,14 +2,16 @@
 This module provides various functions to create and manipulate interactive charts 
 using the Plotly and IPyWidgets libraries. The code is organized into the following functions:
 
-addLines: Adds lines or markers to a given FigureWidget, handling different line types and layout parameters.
-chartFigure: Creates a default chart widget with horizontal subplots.
-updateFigure: Updates lines' xy-values in a given FigureWidget.
-updateSliders: Updates slider values for a given set of sliders.
-interactFigure: Creates an interactive chart with a model's internal data-series and sliders to change parameters.
-interactTable: Creates an interactive parameter table browser.
-chartParallel: Creates a parallel coordinates plot for optimization results.
-chartTrades: Returns a dictionary with trade markers (enter and exit) for long and short trades.
+chartFigure(): Creates a default chart widget with horizontal subplots.
+chartSnap(): Creates figure with bidask chart and orderbook values hover.
+chartParallel(): Creates a parallel coordinates plot for optimization results.
+interactFigure(): Creates an interactive chart with a model's internal data-series and sliders to change parameters.
+interactTable(): Creates an interactive parameter table browser.
+
+updateFigure(): Updates lines' xy-values in a given FigureWidget.
+updateSliders(): Updates slider values for a given set of sliders.
+addLines(): Adds lines or markers to the specified FigureWidget, handling different line types and layout parameters.
+chartTrades(): Returns a dictionary with trade markers (enter and exit) for long and short trades.
 """
 
 import pandas as pd
@@ -35,7 +37,7 @@ from plotly_resampler import FigureWidgetResampler
 default_template = 'plotly_white'
 default_height = 600
 default_margin = dict(l=45, r=15, b=10, t=30, pad=3)
-default_legend = dict(x=0.1, y=1, orientation="h")
+default_legend = dict(x=0.1, y=1, orientation="h", bgcolor='rgba(255, 255, 255, 0)')
 
 default_styles = {
     'Tick': dict(color='gray', opacity=0.25),
@@ -175,6 +177,28 @@ def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
     for i in range(rows, 0, -1):  # disable all range sliders
         fig.update_xaxes(row=i, col=1, rangeslider_visible=False)
 
+    return fig
+
+
+def _fmt(prices, sizes):
+    return '<br>'.join([f'{p:8.1f}{s:8.3f}' for p, s in zip(prices, sizes)])
+
+def getHoverText(P, vP):
+    """returns hover text for specified prices and sizes"""
+    hovertext = [_fmt(p, vp) for p, vp in zip(P.T, vP.T)]
+    return hovertext
+
+
+def chartSnap(ts, A, vA, B, vB, height: int = default_height, title: str = None, **lines) -> FigureWidgetResampler:
+    """Creates figure with bidask chart and orderbook values hover"""
+    ask_hovertext = getHoverText(A[::-1], vA[::-1])
+    bid_hovertext = getHoverText(B, vB)
+    fig = chartFigure(height=height, title=title,
+        Ask=dict(mode='lines', y=A[0], text=ask_hovertext, hoverinfo='text'),
+        Bid=dict(mode='lines', y=B[0], text=bid_hovertext, hoverinfo='text'),
+        layout=dict(hoverlabel=dict(font_size=8, font_family="monospace"), hovermode="x"),
+        **lines
+    )
     return fig
 
 
