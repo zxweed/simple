@@ -145,14 +145,39 @@ def getRowCount(**lines) -> int:
 def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
                 template: str = default_template, equal: bool = False, shared_xaxes: bool = True,
                 **lines) -> FigureWidgetResampler:
-    """Create interactive dynamic chart widget with horizontal subplots"""
+    """
+    Create interactive dynamic chart widget with horizontal subplots
 
+    Parameters
+    ----------
+    height : int
+        height of the figure in pixels
+    rows : int
+        number of subplots in the figure
+    title : str
+        title of the figure
+    template : str
+        layout template used to render the figure
+    equal : bool
+        if True, all subplots will have the same height
+    shared_xaxes : bool
+        if True, all subplots will share the same x-axis
+    **lines : dict
+        keyword arguments to construct traces (lines) in the figure
+
+    Returns
+    -------
+    FigureWidgetResampler
+        a figure widget that can be used to render dynamic charts
+    """
     rows = max(getRowCount(**lines), rows)
     if rows > 1:
         if equal:
+            # all subplots have the same height
             k = 1 / rows
             row_heights = list(repeat(k, rows))
         else:
+            # subplots have different heights
             aux = rows - 1   # auxiliary rows count
             k = 0.1 + 0.1 * rows  # ratio of auxiliary rows
             row_heights = [1 - k] + list(repeat(k/aux, aux))
@@ -171,6 +196,7 @@ def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
         addLines(fig, **lines)
 
     if rows > 1:
+        # disable all range sliders and add spike lines to the x-axis
         fig.update_xaxes(spikemode='across+marker', spikedash='dot', spikethickness=2, spikesnap='cursor')
         fig.update_traces(xaxis=f'x{rows}')
 
@@ -181,6 +207,7 @@ def chartFigure(height: int = default_height, rows: int = 1, title: str = None,
 
 
 def _fmt(prices, sizes):
+    """Format prices and sizes into a string"""
     return '<br>'.join([f'{p:8.1f}{s:8.3f}' for p, s in zip(prices, sizes)])
 
 def getHoverText(P, vP):
@@ -254,7 +281,6 @@ def updateSliders(sliders: widgets, **values: dict):
 
     for slider in sliders:
         slider.value = values[slider.description]
-
 
 def interactFigure(model_func: callable, height: int = default_height, rows: int = 1,
                    title: str = None, template: str = default_template,
