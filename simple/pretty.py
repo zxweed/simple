@@ -81,16 +81,30 @@ def plist(*args):
     return list(product(*(p if iterable(p) else [p] for p in args)))
 
 
-def pmap(func: callable, *args, **kwargs):
-    """Parallel map/starmap implementation via tqdmParallel"""
-
-    param_list = plist(*args)
+def pmap(func: callable, *args, params: List[tuple] = None, **kwargs):
+    """
+    Parallel map/starmap implementation via tqdmParallel
+    
+    Parameters
+    ----------
+    func : callable
+        Function to apply to each parameter combination
+    *args
+        Positional arguments to be passed to the func
+    params : List[tuple], optional
+        List of parameter combinations, by default None
+    desc : str, optional
+        Progress bar description, by default ""
+    **kwargs
+        Additional arguments to be passed to the tqdmParallel
+    """
+    param_list = params if params is not None else plist(*args)
     with tqdmParallel(total=len(param_list), **kwargs) as P:
         FUNC = delayed(func)
         return P(FUNC(*tpl(param)) for param in param_list)
 
 
-def asShared(X: np.ndarray, shm_name=None) -> np.ndarray:
+def asShared(X: np.ndarray, shm_name:str=None) -> np.ndarray:
     """Create shared memory copy of the array to improve further parallel performance"""
     try:
         # Try to attach to existing shared memory
