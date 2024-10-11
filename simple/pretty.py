@@ -21,7 +21,10 @@ from multiprocessing.shared_memory import SharedMemory
 
 
 class tqdmParallel(Parallel):
-    """Shows progress bar when parallel processing, can be used instead of joblib.Parallel class"""
+    """
+    Enhanced Parallel class that shows a progress bar during parallel processing.
+    This class extends joblib.Parallel to provide visual feedback on task completion.
+    """
 
     def __init__(self, progress=True, total=None, postfix=None, **kwargs):
         self.progress = progress
@@ -56,12 +59,25 @@ class tqdmParallel(Parallel):
 
 
 def tpl(x):
-    """Convert value/dict to tuple"""
+    """Convert value/dict to tuple. Useful for functions that expect tuple inputs"""
     return x if isinstance(x, tuple) else tuple(x.values()) if isinstance(x, dict) else (x,)
 
 
 def plist(*args):
-    """Creates product parameter list from a bunch of iterables/values"""
+    """
+    Creates product parameter list from a bunch of iterables/values
+    Useful for generating all possible combinations of input parameters
+
+    Examples:
+        >>> plist([1, 2], ['a', 'b'])
+        [(1, 'a'), (1, 'b'), (2, 'a'), (2, 'b')]
+
+        >>> plist([1, 2], 'x', [True, False])
+        [(1, 'x', True), (1, 'x', False), (2, 'x', True), (2, 'x', False)]
+
+        >>> plist(range(2), ['red', 'blue'])
+        [(0, 'red'), (0, 'blue'), (1, 'red'), (1, 'blue')]
+    """
     return list(product(*(p if iterable(p) else [p] for p in args)))
 
 
@@ -76,7 +92,13 @@ def pmap(func: callable, *args, **kwargs):
 
 def asShared(X: np.ndarray, shm_name=None) -> np.ndarray:
     """Create shared memory copy of the array to improve further parallel performance"""
-    shm = SharedMemory(shm_name, create=True, size=len(X) * X.dtype.itemsize)
+    try:
+        # Try to attach to existing shared memory
+        shm = SharedMemory(shm_name)
+    except FileNotFoundError:
+        # If it doesn't exist, create a new shared memory region
+        shm = SharedMemory(shm_name, create=True, size=len(X) * X.dtype.itemsize)
+    
     result = np.ndarray(X.shape, dtype=X.dtype, buffer=shm.buf)
     result[:] = X
     return result, shm
