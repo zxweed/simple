@@ -87,7 +87,9 @@ simple/numpy.py
 simple/ohlc.py
 simple/pretty.py
 simple/renko.py
+simple/test.py
 simple/types.py
+simple/utils.py
 simple.egg-info/PKG-INFO
 simple.egg-info/SOURCES.txt
 simple.egg-info/dependency_links.txt
