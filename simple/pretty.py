@@ -309,7 +309,7 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
     path_effects = [pe.Stroke(linewidth=2, foreground='black'), pe.Normal()] if stroke else None
 
     # iterate over z/g-values (one value combination for each subplot)
-    for p, ax in [(param[0], axs)] if isinstance(axs, plt.Axes) else tqdm(zip_longest(param, axs.flatten()), total=axs.flatten()):
+    for p, ax in [(param[0], axs)] if isinstance(axs, plt.Axes) else tqdm(zip_longest(param, axs.flatten()), total=len(axs.flatten())):
         # filter one slice for each subplot
         if z_name and not g_name:
             one = df[df[z_name] == p]
