@@ -2,9 +2,9 @@ import numpy as np
 from numpy.typing import NDArray
 from itertools import zip_longest, starmap, product
 from inspect import currentframe, getfullargspec
-from pretty import tqdmParallel
 from joblib import delayed
 from typing import Union
+from .pretty import tqdmParallel
 
 
 def getName(var) -> str:

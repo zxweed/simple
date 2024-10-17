@@ -26,12 +26,12 @@ class tqdmParallel(Parallel):
     This class extends joblib.Parallel to provide visual feedback on task completion.
     """
 
-    def __init__(self, progress=True, total=None, postfix=None, **kwargs):
+    def __init__(self, progress=True, total=None, postfix=None, n_jobs=-1, **kwargs):
         self.progress = progress
         self.total = total
         self.lasttime = datetime.now()
         self.postfix = postfix if type(postfix) is dict else {'name': postfix} if postfix is not None else None
-        super().__init__(**kwargs)
+        super().__init__(n_jobs=n_jobs, **kwargs)
 
     def __call__(self, *args, **kwargs):
         with tqdm(disable=not self.progress, total=self.total) as self._pbar:
@@ -301,7 +301,7 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
     k1 = rows / cols
     k2 = pvt.shape[0] / pvt.shape[1]
     fig_height = fig_width * k1 * k2
-    fig, axs = plt.subplots(rows, cols, figsize=(fig_width, fig_height))
+    fig, axs = plt.subplots(rows, cols, figsize=(fig_width, fig_height), sharex='all', sharey='all')
     fig.subplots_adjust(wspace=0.05, hspace=0.05)
 
     values = df[value_name]
@@ -309,7 +309,7 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
     path_effects = [pe.Stroke(linewidth=2, foreground='black'), pe.Normal()] if stroke else None
 
     # iterate over z/g-values (one value combination for each subplot)
-    for p, ax in [(param[0], axs)] if isinstance(axs, plt.Axes) else zip_longest(param, axs.flatten()):
+    for p, ax in [(param[0], axs)] if isinstance(axs, plt.Axes) else tqdm(zip_longest(param, axs.flatten()), total=axs.flatten()):
         # filter one slice for each subplot
         if z_name and not g_name:
             one = df[df[z_name] == p]
@@ -329,12 +329,21 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
             ax.imshow(pvt, cmap='RdYlGn', vmin=-h, vmax=h)
 
             # place text in the center of heatmap
-            y, x = [s/2 for s in pvt.shape]
+            y, x = [(s-1)/2 for s in pvt.shape]
             text += f'\nmax({value_name})={pvt.max():,.1f}\nmean({value_name})={pvt.mean():,.1f}'
             ax.text(x, y, text, color=text_color, ha='center', va='center', path_effects=path_effects)
+            
+            # add x and y labels
+            xlabels = one[x_name].unique()
+            ax.set_xticks(range(len(xlabels)))
+            ax.set_xticklabels(xlabels)
+
+            ylabels = one[y_name].unique()
+            ax.set_yticks(range(len(ylabels)))
+            ax.set_yticklabels(one[y_name].unique())
 
         # the number of subplots can be more than the data, but it is necessary to set parameters for them too
-        ax.tick_params(left=False, right=False, labelleft=False, labelbottom=False, bottom=False)
+#        ax.tick_params(left=True, right=False, labelleft=True, labelbottom=True, bottom=True)
 
     plt.close(fig)
     return fig
