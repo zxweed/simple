@@ -248,32 +248,37 @@ def get_sides(n: int) -> tuple:
     return x, y
 
 
+def rnd(value, prec=4):
+    """Round value if possible"""
+    return round(value, prec) if isinstance(value, float) else value
+
+
 def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
                  z_name: str = None, g_name: str = None, 
                  value_max: float = None,
                  fig_width=16, text_color='blue', stroke: bool = False) -> plt.figure:
     """
     Create grid figure with heatmap subplots.
-
+    
     Parameters:
-        df (NDArray or DataFrame): The input data.
-        x_name (str): The name of the column to be used as x-axis for each subplot.
-        y_name (str): The name of the column to be used as y-axis for each subplot.
-        value_name (str): The name of the column to be used as values.
-        z_name (str, optional): The name of the column to be used as z-value for grid.
-        g_name (str, optional): The name of the column to be used as g-value for grid.
-        value_max (float, optional): The maximum value for the color map.
-        fig_width (int, optional): The width of the figure.
-        text_color (str, optional): The color of the text.
-        stroke (bool, optional): Whether to add a stroke to the text.
-
+        df (NDArray or DataFrame): The input data
+        x_name (str): The name of the column to be used as x-axis for each subplot
+        y_name (str): The name of the column to be used as y-axis for each subplot
+        value_name (str): The name of the column to be used as values
+        z_name (str, optional): The name of the column to be used as z-value for grid
+        g_name (str, optional): The name of the column to be used as g-value for grid
+        value_max (float, optional): The maximum value for the color map
+        fig_width (int, optional): The width of the figure
+        text_color (str, optional): The color of the text
+        stroke (bool|str, optional): Flag to add a black (or specified color) stroke to the text
+    
     Returns:
         plt.figure: The figure object.
     """
 
     Z = np.unique(df[z_name]) if z_name else None
     G = np.unique(df[g_name]) if g_name else None
-
+    
     # determine number of rows and columns
     if not z_name and not g_name:
         # single plot
@@ -286,18 +291,18 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
         one = df[(df[z_name] == Z[0]) & (df[g_name] == G[0])]
         param = product(Z, G)
     elif g_name and not z_name:
-        # one subplot per z-value (no grid, just rectangular sequence)
+        # one subplot per g-value (no grid, just rectangular sequential map)
         rows, cols = get_sides(len(G))
         one = df[df[g_name] == G[0]]
         param = G
     elif z_name and not g_name:
-        # one subplot per g-value (no grid, just rectangular sequence)
-        rows, cols = get_sides(len(Z))
+        # one subplot per z-value (one-row grid)
+        rows, cols = 1, len(Z)
         one = df[df[z_name] == Z[0]]
         param = Z
 
     # determine width and height of figure
-    pvt = one.pivot(columns=x_name, index=y_name, values=value_name).values
+    pvt = pd.DataFrame(one).pivot(columns=x_name, index=y_name, values=value_name).values
     k1 = rows / cols
     k2 = pvt.shape[0] / pvt.shape[1]
     fig_height = fig_width * k1 * k2
@@ -306,44 +311,45 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
 
     values = df[value_name]
     h = value_max if value_max is not None else values[values > 0].max()
-    path_effects = [pe.Stroke(linewidth=2, foreground='black'), pe.Normal()] if stroke else None
+    if stroke:
+        color = stroke if isinstance(stroke, str) else 'black'
+        path_effects = [pe.Stroke(linewidth=1.75, foreground=color), pe.Normal()]
+    else:
+        path_effects = None
 
     # iterate over z/g-values (one value combination for each subplot)
     for p, ax in [(param[0], axs)] if isinstance(axs, plt.Axes) else tqdm(zip_longest(param, axs.flatten()), total=len(axs.flatten())):
         # filter one slice for each subplot
         if z_name and not g_name:
             one = df[df[z_name] == p]
-            text = f'{z_name}={p}\n'
+            text = f'{z_name}={rnd(p)}\n' if p is not None else ''
         elif g_name and not z_name:
             one = df[df[g_name] == p]
-            text = f'{g_name}={p}\n'
+            text = f'{g_name}={rnd(p)}\n' if p is not None else ''
         elif z_name and g_name:
             one = df[(df[z_name] == p[0]) & (df[g_name] == p[1])]
-            text = f'{z_name}={p[0]}\n{g_name}={p[1]}\n'
+            text = f'{z_name}={rnd(p[0])}\n{g_name}={rnd(p[1])}\n'
         else:
             one = df
             text = ''
-        pvt = one.pivot(columns=x_name, index=y_name, values=value_name).values
-
+        pvt = pd.DataFrame(one).pivot(columns=x_name, index=y_name, values=value_name)
+    
         if len(pvt) > 0:
             ax.imshow(pvt, cmap='RdYlGn', vmin=-h, vmax=h)
-
+            
             # place text in the center of heatmap
             y, x = [(s-1)/2 for s in pvt.shape]
-            text += f'\nmax({value_name})={pvt.max():,.1f}\nmean({value_name})={pvt.mean():,.1f}'
+            text += f'\nmax({value_name})={pvt.values.max():,.1f}\nmean({value_name})={pvt.values.mean():,.1f}'
             ax.text(x, y, text, color=text_color, ha='center', va='center', path_effects=path_effects)
-            
+
             # add x and y labels
-            xlabels = one[x_name].unique()
+            xlabels = rnd(pvt.columns.values)
             ax.set_xticks(range(len(xlabels)))
             ax.set_xticklabels(xlabels)
 
-            ylabels = one[y_name].unique()
+            ylabels = rnd(pvt.index.values)
             ax.set_yticks(range(len(ylabels)))
             ax.set_yticklabels(one[y_name].unique())
-
-        # the number of subplots can be more than the data, but it is necessary to set parameters for them too
-#        ax.tick_params(left=True, right=False, labelleft=True, labelbottom=True, bottom=True)
 
     plt.close(fig)
     return fig
