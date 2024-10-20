@@ -15,6 +15,7 @@ from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.preprocessing import label_binarize
 from joblib import Parallel, delayed
 from psutil import cpu_percent
+from os import cpu_count
 from datetime import datetime, timedelta
 from tqdm.auto import tqdm
 from multiprocessing.shared_memory import SharedMemory
@@ -26,7 +27,7 @@ class tqdmParallel(Parallel):
     This class extends joblib.Parallel to provide visual feedback on task completion.
     """
 
-    def __init__(self, progress=True, total=None, postfix=None, n_jobs=-1, **kwargs):
+    def __init__(self, progress=True, total=None, postfix=None, n_jobs=cpu_count()//2, **kwargs):
         self.progress = progress
         self.total = total
         self.lasttime = datetime.now()
