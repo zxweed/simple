@@ -220,9 +220,10 @@ def chartSnap(ts, A, vA, B, vB, height: int = default_height, title: str = None,
     """Creates figure with bidask chart and orderbook values hover"""
     ask_hovertext = getHoverText(A[::-1], vA[::-1])
     bid_hovertext = getHoverText(B, vB)
+
     fig = chartFigure(height=height, title=title,
-        Ask=dict(mode='lines', y=A[0], text=ask_hovertext, hoverinfo='text'),
-        Bid=dict(mode='lines', y=B[0], text=bid_hovertext, hoverinfo='text'),
+        Ask=dict(mode='lines', x=ts, y=A[0], text=ask_hovertext, hoverinfo='text'),
+        Bid=dict(mode='lines', x=ts, y=B[0], text=bid_hovertext, hoverinfo='text'),
         layout=dict(hoverlabel=dict(font_size=8, font_family="monospace"), hovermode="x"),
         **lines
     )
