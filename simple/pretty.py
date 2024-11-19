@@ -82,7 +82,7 @@ def plist(*args):
     return list(product(*(p if iterable(p) else [p] for p in args)))
 
 
-def pmap(func: callable, *args, params: List[tuple] = None, **kwargs):
+def pmap(func: callable, *args, params: List[tuple] = None, combined: bool = False, **kwargs):
     """
     Parallel map/starmap implementation via tqdmParallel
     
@@ -102,7 +102,10 @@ def pmap(func: callable, *args, params: List[tuple] = None, **kwargs):
     param_list = params if params is not None else plist(*args)
     with tqdmParallel(total=len(param_list), **kwargs) as P:
         FUNC = delayed(func)
-        return P(FUNC(*tpl(param)) for param in param_list)
+        result = P(FUNC(*tpl(param)) for param in param_list)
+
+    # combine parameter list with results if specified
+    return [(*p, v) for p, v in zip(param_list, result)] if combined else result
 
 
 def asShared(X: np.ndarray, shm_name:str=None) -> np.ndarray:
