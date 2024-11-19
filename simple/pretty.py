@@ -260,7 +260,9 @@ def rnd(value, prec=4):
 def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
                  z_name: str = None, g_name: str = None, 
                  value_max: float = None,
-                 fig_width=16, text_color='blue', stroke: bool = False) -> plt.figure:
+                 fig_width=16, 
+                 text_color='blue', stroke: bool = False,
+                 labels: bool = True) -> plt.figure:
     """
     Create grid figure with heatmap subplots.
     
@@ -347,13 +349,14 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
             ax.text(x, y, text, color=text_color, ha='center', va='center', path_effects=path_effects)
 
             # add x and y labels
-            xlabels = rnd(pvt.columns.values)
-            ax.set_xticks(range(len(xlabels)))
-            ax.set_xticklabels(xlabels)
+            if labels:
+                xlabels = rnd(pvt.columns.values)
+                ax.set_xticks(range(len(xlabels)))
+                ax.set_xticklabels(xlabels)
 
-            ylabels = rnd(pvt.index.values)
-            ax.set_yticks(range(len(ylabels)))
-            ax.set_yticklabels(one[y_name].unique())
+                ylabels = rnd(pvt.index.values)
+                ax.set_yticks(range(len(ylabels)))
+                ax.set_yticklabels(one[y_name].unique())
 
     plt.close(fig)
     return fig
