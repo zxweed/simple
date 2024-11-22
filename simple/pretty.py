@@ -82,7 +82,7 @@ def plist(*args):
     return list(product(*(p if iterable(p) else [p] for p in args)))
 
 
-def pmap(func: callable, *args, params: List[tuple] = None, combined: bool = False, **kwargs):
+def pmap(func: callable, *args, params: List[tuple] = None, combine: bool = False, **kwargs):
     """
     Parallel map/starmap implementation via tqdmParallel
     
@@ -94,6 +94,8 @@ def pmap(func: callable, *args, params: List[tuple] = None, combined: bool = Fal
         Positional arguments to be passed to the func
     params : List[tuple], optional
         List of parameter combinations, by default None
+    combined : bool, optional
+        If True, combine parameter list with results, by default False
     desc : str, optional
         Progress bar description, by default ""
     **kwargs
@@ -105,7 +107,7 @@ def pmap(func: callable, *args, params: List[tuple] = None, combined: bool = Fal
         result = P(FUNC(*tpl(param)) for param in param_list)
 
     # combine parameter list with results if specified
-    return [(*p, v) for p, v in zip(param_list, result)] if combined else result
+    return [(*p, *tpl(v)) for p, v in zip(param_list, result)] if combine else result
 
 
 def asShared(X: np.ndarray, shm_name:str=None) -> np.ndarray:
@@ -351,12 +353,15 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
             # add x and y labels
             if labels:
                 xlabels = rnd(pvt.columns.values)
-                ax.set_xticks(range(len(xlabels)))
-                ax.set_xticklabels(xlabels)
-
                 ylabels = rnd(pvt.index.values)
-                ax.set_yticks(range(len(ylabels)))
-                ax.set_yticklabels(one[y_name].unique())
+            else:
+                xlabels = []
+                ylabels = []
+
+            ax.set_xticks(range(len(xlabels)))
+            ax.set_xticklabels(xlabels)
+            ax.set_yticks(range(len(ylabels)))
+            ax.set_yticklabels(ylabels)
 
     plt.close(fig)
     return fig
