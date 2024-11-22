@@ -22,7 +22,7 @@ def _HistOHLC(month, ticker, frame, close_only=False, spot=False):
         else:
             url = hist_fut_api.format(month=month, ticker=ticker, frame=frame)
 
-        header = None if month <= '2022-03' else 'infer'
+        header = None# if month <= '2022-03' else 'infer'
         x = pd.read_csv(url, header=header)
         x.columns = [
             'DateTime', 'Open', 'High', 'Low', 'Close', 'Volume', 'CloseDT',
