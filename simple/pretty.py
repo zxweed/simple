@@ -85,7 +85,7 @@ def plist(*args):
 def pmap(func: callable, *args, params: List[tuple] = None, combine: bool = False, **kwargs):
     """
     Parallel map/starmap implementation via tqdmParallel
-    
+
     Parameters
     ----------
     func : callable
@@ -94,12 +94,16 @@ def pmap(func: callable, *args, params: List[tuple] = None, combine: bool = Fals
         Positional arguments to be passed to the func
     params : List[tuple], optional
         List of parameter combinations, by default None
-    combined : bool, optional
+    combine : bool, optional
         If True, combine parameter list with results, by default False
-    desc : str, optional
-        Progress bar description, by default ""
     **kwargs
-        Additional arguments to be passed to the tqdmParallel
+        Additional arguments to be passed to the tqdmParallel:
+        desc : str, optional
+            Progress bar description, by default empty
+        n_jobs : int
+            Parallel jobs count, by default half of the available cores
+        progress : bool
+            True to show progress bar, enabled by default
     """
     param_list = params if params is not None else plist(*args)
     with tqdmParallel(total=len(param_list), **kwargs) as P:
