@@ -3,8 +3,6 @@ from numpy.typing import NDArray
 from typing import Union, List
 from itertools import zip_longest, starmap, product
 from inspect import currentframe, getfullargspec
-from joblib import delayed
-from typing import Union
 from joblib import Parallel, delayed
 from psutil import cpu_percent
 from os import cpu_count
@@ -194,24 +192,6 @@ def vx(X: NDArray) -> NDArray:
     x = X.astype([desc for desc in X.dtype.descr if desc[0] != ''])
     dtype = x.dtype.descr[0][1]
     return x.view(dtype).reshape(len(x), len(x.dtype.names))
-
-
-def common_type(types: Union[list, set]) -> type:
-    """
-    Find the common type among the given types.
-    Args:
-        types (list or set): A list of types.
-    Returns:
-        type: The common type among the given types.
-    """
-    if all(issubclass(t, int) for t in types):
-        return int
-    elif any(issubclass(t, str) for t in types):
-        return np.dtype('U32')
-    elif any(issubclass(t, float) for t in types):
-        return float
-    else:
-        return object
 
 
 def inclusive_range(*args, count: int = 10):
