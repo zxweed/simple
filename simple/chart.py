@@ -24,7 +24,7 @@ from ipywidgets import widgets, interactive, HBox, VBox
 from ipyslickgrid import show_grid
 
 from simple.types import TPairTrade
-from simple.pretty import iterable
+from simple.utils import iterable
 from simple.backtest import getProfit
 
 import plotly.graph_objs as go

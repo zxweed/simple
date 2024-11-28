@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.patheffects as pe
 import seaborn as sns
+from tqdm.auto import tqdm
 
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.preprocessing import label_binarize
