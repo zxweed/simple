@@ -244,7 +244,7 @@ def npJoin(S1, S2: np.array) -> int:
     j = 0
     Idx = np.zeros(len(S1), dtype=np.int32)
     for s in range(len(S1)):
-        while j < len(S2) - 1 and S1[s] >= S2[j]:
+        while j < len(S2) and S1[s] >= S2[j]:
             j += 1
         Idx[s] = j - 1
 
