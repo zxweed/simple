@@ -92,7 +92,10 @@ def pg(X: pd.DataFrame) -> Styler:
     """Pretty print pandas dataframe with vertical lines are drawn on the groups"""
     data = [(i, c[0]) for i, c in enumerate(X.columns)]
     vlines = [index for index in range(1, len(data)) if data[index][1] != data[index - 1][1]]
-    return X.style.set_table_styles(add_vlines(vlines))
+    return X.style.set_table_styles(
+        [{"selector": "td", "props": [("white-space", "nowrap")]}] +
+        add_vlines(vlines)
+    )
 
 
 def get_sides(n: int) -> tuple:
