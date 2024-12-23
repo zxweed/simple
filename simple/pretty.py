@@ -88,11 +88,20 @@ def pp(X: pd.DataFrame, float_format: str = None, h_subset=None) -> Styler:
     return x if h_subset is None else x.apply(hline, axis=1, subset=h_subset)
 
 
-def pg(X: pd.DataFrame) -> Styler:
+def pg(X: pd.DataFrame, float_format: str = None) -> Styler:
     """Pretty print pandas dataframe with vertical lines are drawn on the groups"""
     data = [(i, c[0]) for i, c in enumerate(X.columns)]
-    vlines = [index for index in range(1, len(data)) if data[index][1] != data[index - 1][1]]
-    return X.style.set_table_styles(
+    vlines = [0] + [index for index in range(1, len(data)) if data[index][1] != data[index - 1][1]]
+    numeric_cols = X.select_dtypes(include=['float']).columns
+
+    if float_format is None:
+        float_format = pd.options.display.float_format
+    if float_format is None:
+        float_format = "{:.2f}"
+
+    return X.style.format({
+        col: float_format for col in numeric_cols
+    }).set_table_styles(
         [{"selector": "td", "props": [("white-space", "nowrap")]}] +
         add_vlines(vlines)
     )
