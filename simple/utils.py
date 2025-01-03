@@ -257,3 +257,11 @@ def gridrun(func: callable, count: int = 10, **kwargs) -> NDArray:
     columns = spec.args + (list(log[0].keys()) if type(log[0]) is dict else ['value'])
     dtype = [(col, common_type(set([type(r[i]) for r in result_list]))) for i, col in enumerate(columns)]
     return np.array(result_list, dtype=dtype).view(np.recarray)
+
+
+def npDateTime(T: np.dtype, new_dtype: object = 'M8[us]') -> np.dtype:
+    """Replace DateTime/DT field's dtype with another specified dtype"""
+    return np.dtype([(d[0], new_dtype if d[0] in ['DateTime', 'DT'] else d[1]) for d in T.descr])
+
+def asDateTime(X: NDArray, new_dtype: object = 'M8[us]') -> NDArray:
+    return X.view(npDateTime(X.dtype, new_dtype)).view(np.recarray)
