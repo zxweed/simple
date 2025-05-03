@@ -6,6 +6,7 @@ from inspect import currentframe, getfullargspec
 from joblib import Parallel, delayed
 from psutil import cpu_percent
 from os import cpu_count
+from os.path import getsize
 from datetime import datetime, timedelta
 from tqdm.auto import tqdm
 from multiprocessing.shared_memory import SharedMemory
@@ -102,6 +103,20 @@ def pmap(func: callable, *args, params: List[tuple] = None, combine: bool = Fals
 
     # combine parameter list with results if specified
     return [(*p, *tpl(v)) for p, v in zip(param_list, result)] if combine else result
+
+
+def npMMF(filename: str, dtype: np.dtype) -> NDArray:
+    """Returns memory-mapped array of specified filename and dtype"""
+    rec_count = getsize(filename) // np.dtype(dtype).itemsize
+    X = np.memmap(filename, mode='r+', shape=rec_count, dtype=dtype)
+    return X.view(np.recarray)
+
+
+def toMMF(filename: str, A: NDArray):
+    """Stores array to memory-mapped file"""
+    mf = np.memmap(filename, mode='w+', shape=A.shape, dtype=A.dtype)
+    mf[:] = A
+    mf.flush()
 
 
 def asShared(X: np.ndarray, shm_name:str=None) -> np.ndarray:
