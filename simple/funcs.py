@@ -361,7 +361,7 @@ def zscore(X: NDArray, period: int) -> NDArray[np.float64]:
 
     Parameters:
     X (numpy.ndarray): Input array.
-    window (int): Window size.
+    period (int): Rolling window size.
 
     Returns:
     numpy.ndarray: Array with the rolling Z-scores.

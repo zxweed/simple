@@ -64,7 +64,7 @@ def background(self, scale='Linear', cmap='RdYlGn', **css) -> pd.DataFrame:
 def hline(row, color='black', width='1px'): 
     return [f"border-bottom: {width} solid {color};" for _ in row]
 
-def add_vlines(indices: list, props = 'border-left: 1px solid lightgray;') -> Styler:
+def add_vlines(indices: list, props = 'border-left: 1px solid lightgray;') -> list:
     """
     Add vertical lines to the styled DataFrame
     Usage example:
@@ -77,7 +77,7 @@ def add_vlines(indices: list, props = 'border-left: 1px solid lightgray;') -> St
     return styles
 
 
-def pp(X: pd.DataFrame, float_format: str = None, h_subset=None) -> Styler:
+def pp(X: pd.DataFrame, float_format: str | None = None, h_subset=None) -> Styler:
     """Pretty print pandas dataframe with ability to stroke some cells"""
 
     if float_format is None:
@@ -88,7 +88,7 @@ def pp(X: pd.DataFrame, float_format: str = None, h_subset=None) -> Styler:
     return x if h_subset is None else x.apply(hline, axis=1, subset=h_subset)
 
 
-def pg(X: pd.DataFrame, float_format: str = None) -> Styler:
+def pg(X: pd.DataFrame, float_format: str | None = None) -> Styler:
     """Pretty print pandas dataframe with vertical lines are drawn on the groups"""
     data = [(i, c[0]) for i, c in enumerate(X.columns)]
     vlines = [0] + [index for index in range(1, len(data)) if data[index][1] != data[index - 1][1]]
@@ -142,7 +142,7 @@ def rnd(value, prec=4):
 
 
 def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
-                 z_name: str = None, g_name: str = None, 
+                 z_name: str = '', g_name: str = '', 
                  value_max: float = None,
                  fig_width=16, 
                  text_color='blue', stroke: bool = False,

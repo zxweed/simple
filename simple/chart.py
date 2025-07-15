@@ -73,8 +73,12 @@ def addLines(fig: go.FigureWidget, **lines):
 
     for line_name in lines:
         line = lines[line_name]
+
+        # check for contiguous state and fix it, if necessary
         if isinstance(line, np.ndarray) and not line.flags['C_CONTIGUOUS']:
             line = np.ascontiguousarray(line)
+        if isinstance(line, pd.Series) and not line.values.flags['C_CONTIGUOUS']:
+            line = np.ascontiguousarray(line.values)
 
         if type(line) != dict:
             line = {'hf_y': line}  # if there is only one value specified - interpret as Y series
