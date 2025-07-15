@@ -77,7 +77,7 @@ def add_vlines(indices: list, props = 'border-left: 1px solid lightgray;') -> li
     return styles
 
 
-def pp(X: pd.DataFrame, float_format: str | None = None, h_subset=None) -> Styler:
+def pp(X: pd.DataFrame, float_format=None, h_subset=None) -> Styler:
     """Pretty print pandas dataframe with ability to stroke some cells"""
 
     if float_format is None:
@@ -88,7 +88,7 @@ def pp(X: pd.DataFrame, float_format: str | None = None, h_subset=None) -> Style
     return x if h_subset is None else x.apply(hline, axis=1, subset=h_subset)
 
 
-def pg(X: pd.DataFrame, float_format: str | None = None) -> Styler:
+def pg(X: pd.DataFrame, float_format=None) -> Styler:
     """Pretty print pandas dataframe with vertical lines are drawn on the groups"""
     data = [(i, c[0]) for i, c in enumerate(X.columns)]
     vlines = [0] + [index for index in range(1, len(data)) if data[index][1] != data[index - 1][1]]
@@ -265,11 +265,18 @@ def plotImportance(model, names=None, top=20, palette='Blues_r', ax=None):
 
     # Check if the model has a 'feature_importances_' attribute
     if hasattr(model, 'feature_importances_'):
+        importances = model.feature_importances_
+    elif hasattr(model, 'feature_importance'):
+        importances = model.feature_importance()
+    else:
+        importances = None
+
+    if importances is not None:
         # Sort the feature importances in descending order and select the top features
-        f = pd.Series(model.feature_importances_, index=names).sort_values(ascending=False)[:top]
+        f = pd.Series(importances, index=names).sort_values(ascending=False)[:top]
         sns.barplot(y=f.index, hue=f.index, x=f, palette=palette, ax=ax).set(ylabel='Feature importance')
     else:
-         print("Selected model does not support feature_importances_")
+         print("Selected model does not support feature_importances")
 
 
 def getROC(model, X_test, y_test):
