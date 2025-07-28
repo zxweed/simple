@@ -6,10 +6,11 @@ from inspect import currentframe, getfullargspec
 from joblib import Parallel, delayed
 from psutil import cpu_percent
 from os import cpu_count
-from os.path import getsize
+from os.path import getsize, splitext, exists
 from datetime import datetime, timedelta
 from tqdm.auto import tqdm
 from multiprocessing.shared_memory import SharedMemory
+from json import dumps, loads
 
 
 class tqdmParallel(Parallel):
@@ -105,8 +106,14 @@ def pmap(func: callable, *args, params: List[tuple] = None, combine: bool = Fals
     return [(*p, *tpl(v)) for p, v in zip(param_list, result)] if combine else result
 
 
-def npMMF(filename: str, dtype: np.dtype) -> NDArray:
+def npMMF(filename: str, dtype: np.dtype = None) -> NDArray:
     """Returns memory-mapped array of specified filename and dtype"""
+    if dtype is None:
+        name, ext = splitext(filename)
+        with open(f'{name}.dtype') as f:
+            s = f.readline()
+        dtype = np.dtype([tuple(row) for row in loads(s)])
+
     rec_count = getsize(filename) // np.dtype(dtype).itemsize
     X = np.memmap(filename, mode='r+', shape=rec_count, dtype=dtype)
     return X.view(np.recarray)
@@ -117,6 +124,11 @@ def toMMF(filename: str, A: NDArray):
     mf = np.memmap(filename, mode='w+', shape=A.shape, dtype=A.dtype)
     mf[:] = A
     mf.flush()
+
+    s_dtype = dumps(A.dtype.descr)
+    name, ext = splitext(filename)
+    with open(f'{name}.dtype', 'w') as f:
+        f.write(s_dtype)
 
 
 def asShared(X: np.ndarray, shm_name:str=None) -> np.ndarray:
