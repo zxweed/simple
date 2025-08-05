@@ -7,8 +7,8 @@ from numba.typed import List
 from numba.types import int64, float64, Tuple
 from sklearn.metrics import mean_squared_error, r2_score
 
-from simple.types import TTrade, TPairTrade, TProfit, TBidAskDT, TOHLC
-from simple.pretty import pmap
+from .types import TTrade, TPairTrade, TProfit, TBidAskDT, TOHLC
+from .pretty import pmap
 
 
 fp32 = np.float32
@@ -301,3 +301,48 @@ def dictMetrics(y_true: NDArray, y_pred: NDArray, sep: int) -> dict:
         'RMSE(t)': rmse0, 'Corr(t)': corr0, 'Acc(t)': acc0, 'R²(t)' : rsquared0,
         'RMSE(v)': rmse1, 'Corr(v)': corr1, 'Acc(v)': acc1, 'R²(v)' : rsquared1
     }
+
+
+def npDeals(Trades: NDArray[TPairTrade]) -> NDArray[TTrade]:
+    """Returns one-sided deals from paired trades"""
+    Enter = Trades[['T0', 'Price0', 'Size']]
+    Exit = np.rec.fromarrays([Trades['T1'], Trades['Price1'], -Trades['Size']], dtype=TTrade)
+    Enter.dtype.names = Exit.dtype.names
+
+    Deals = np.concatenate([Enter, Exit])
+    Deals.sort(order=['DateTime'])
+    return Deals.view(np.recarray)
+
+
+@njit(nogil=True)
+def npPositions(Spreads: NDArray[TBidAskDT], Deals: NDArray[TTrade]) -> NDArray[np.float32]:
+    """Returns position curve from tick trades"""
+
+    P = np.zeros(len(Spreads))
+    for i in range(len(Deals)):
+        tm = Deals[i]['DateTime']
+        k = np.searchsorted(Spreads['DateTime'], tm)
+        P[k] += Deals[i]['Size']
+    return P.cumsum()
+
+
+@njit(nogil=True)
+def npEquity(Deals: NDArray[TTrade], Spread: NDArray[TBidAskDT] = None, fee=default_fee) -> NDArray[np.float32]:
+    if Spread is not None:
+        Eq = np.zeros(len(Spread))
+        k = money = pos = 0
+        for i in range(len(Spread)):
+            while k < len(Deals) and Deals[k].DateTime <= Spread[i].DateTime:
+                pos += Deals[k].Size
+                t = Deals[k].Size * Deals[k].Price
+                money -= t + abs(t) * fee/100
+                k += 1
+            Eq[i] = money + pos * (Spread[i].BidPrice + Spread[i].AskPrice) / 2
+
+    # trades-only equity line
+    else:
+        Eq = np.cumsum(Deals.Size) * Deals.Price - np.cumsum(Deals.Size * Deals.Price)
+        Fee = np.cumsum(np.abs(Deals.Size) * Deals.Price * fee/100)
+        Eq -= Fee
+
+    return Eq
