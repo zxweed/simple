@@ -10,6 +10,7 @@ import matplotlib as mpl
 import matplotlib.patheffects as pe
 import seaborn as sns
 from tqdm.auto import tqdm
+from typing import Optional
 
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn.preprocessing import label_binarize
@@ -77,14 +78,14 @@ def add_vlines(indices: list, props = 'border-left: 1px solid lightgray;') -> li
     return styles
 
 
-def pp(X: pd.DataFrame, float_format=None, h_subset=None) -> Styler:
+def pp(X: pd.DataFrame, float_format: Optional[str]=None, na_rep="-", h_subset=None) -> Styler:
     """Pretty print pandas dataframe with ability to stroke some cells"""
 
     if float_format is None:
         float_format = pd.options.display.float_format
     if float_format is None:
         float_format = '{:,.2f}'
-    x = X.style.format(float_format).apply(background, axis=None)
+    x = X.style.format(float_format, na_rep=na_rep).apply(background, axis=None)
     return x if h_subset is None else x.apply(hline, axis=1, subset=h_subset)
 
 
@@ -143,7 +144,7 @@ def rnd(value, prec=4):
 
 def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
                  z_name: str = '', g_name: str = '', 
-                 value_max: float = None,
+                 value_max: Optional[float] = None,
                  fig_width=16, 
                  text_color='blue', stroke: bool = False,
                  labels: bool = True) -> plt.figure:
