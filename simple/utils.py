@@ -288,7 +288,7 @@ def gridrun(func: callable, count: int = 10, **kwargs) -> NDArray:
 
 def npDateTime(T: np.dtype, new_dtype: object = 'M8[us]') -> np.dtype:
     """Replace DateTime/DT field's dtype with another specified dtype"""
-    return np.dtype([(d[0], new_dtype if d[0] in ['DateTime', 'DT'] else d[1]) for d in T.descr])
+    return np.dtype([(d[0], new_dtype if d[0].lower() in ['datetime', 'dt', 'timestamp', 'ts'] else d[1]) for d in T.descr])
 
 def asDateTime(X: NDArray, new_dtype: object = 'M8[us]') -> NDArray:
     return X.view(npDateTime(X.dtype, new_dtype)).view(np.recarray)
