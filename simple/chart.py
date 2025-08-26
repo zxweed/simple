@@ -21,11 +21,11 @@ from numpy.typing import NDArray
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
 from ipywidgets import widgets, interactive, HBox, VBox
-from ipyslickgrid import show_grid
+#from ipyslickgrid import show_grid
 
-from simple.types import TPairTrade
-from simple.utils import iterable
-from simple.backtest import getProfit
+from .types import TPairTrade, TBidAskDT, TTrade
+from .utils import iterable
+from .backtest import getProfit, npEquity
 
 import plotly.graph_objs as go
 from plotly.graph_objs.scattergl import Marker, Line
@@ -40,17 +40,20 @@ default_margin = dict(l=45, r=15, b=10, t=30, pad=3)
 default_legend = dict(x=0.1, y=1, orientation="h", bgcolor='rgba(255, 255, 255, 0)')
 
 default_styles = {
-    'Tick': dict(color='gray', opacity=0.25),
-    'Ask': dict(color='red', opacity=0.25, shape='hv'),
-    'Bid': dict(color='green', opacity=0.25, shape='hv'),
-    'qA': dict(color='red', opacity=0.5, dash='dot', shape='hv'),
-    'qB': dict(color='green', opacity=0.5, dash='dot', shape='hv'),
+    'Tick': dict(color='gray', opacity=0.25, connectgaps=True),
+    'Ask': dict(color='red', opacity=0.25, shape='hv', connectgaps=True),
+    'Bid': dict(color='green', opacity=0.25, shape='hv', connectgaps=True),
+    'qA': dict(color='red', opacity=0.5, dash='dot', shape='hv', connectgaps=True),
+    'qB': dict(color='green', opacity=0.5, dash='dot', shape='hv', connectgaps=True),
 
-    'Signal': dict(color='blue', opacity=0.5, row=2),
+    'Signal': dict(color='blue', opacity=0.5, row=2, connectgaps=True),
 
     'MidPnL': dict(color='darkgray', width=2, opacity=0.4, secondary_y=True, shape='hv', connectgaps=True),
     'RawPnL': dict(color='gray', width=2, opacity=0.4, secondary_y=True, shape='hv', connectgaps=True),
     'Profit': dict(color='blue', width=3, opacity=0.5, secondary_y=True, shape='hv', connectgaps=True),
+
+    'Buy': dict(mode='markers', marker=dict(symbol='triangle-up', size=6, color='green', line_color='darkgreen', line_width=1)),
+    'Sell': dict(mode='markers', marker=dict(symbol='triangle-down', size=6, color='red', line_color='darkred', line_width=1)),
 
     'EnterLong': dict(mode='markers', marker=dict(symbol='triangle-up', size=6, color='green', line_color='darkgreen', line_width=1)),
     'ExitLong': dict(mode='markers', marker=dict(symbol='x', size=5, color='green', line_color='darkgreen', line_width=1)),
@@ -357,6 +360,17 @@ def chartTrades(trades: NDArray[TPairTrade], use_time: bool = False) -> dict:
     }
 
 
+def chartDeals(deals: NDArray[TTrade]) -> dict:
+    """Returns dict with deals symbols for chart"""
+    Buy = deals[deals.Size > 0]
+    Sell = deals[deals.Size < 0]
+
+    return {
+        'Buy': dict(x=Buy['DateTime'], y=Buy['Price']),
+        'Sell': dict(x=Sell['DateTime'], y=Sell['Price'])
+    }
+
+
 def top_features(model, importance_type='split', top=16):
     """Returns top importance features with names"""
     F = list(sorted(zip(model.feature_importance(importance_type), model.feature_name())))[-top:]
@@ -395,3 +409,32 @@ def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = []) -> wid
     fig.update_layout(autosize=True, height=height, template=default_template,
                       margin=dict(l=45, r=45, b=20, t=50, pad=3))
     return fig
+
+
+def chartEquity(Deals: NDArray[TTrade], Spread: NDArray[TBidAskDT] = None, height=500, title: str = None, **lines):
+    """Draw deals chart with equity, position curve and optional spread or other charts"""
+    buys, sells = Deals['Size'] > 0, Deals['Size']  < 0
+    eq = npEquity(Deals, Spread, fee=0)
+    
+    if Spread is None:
+        # draw deals chart without DateTime axis (by ordinal deal number)
+        pos = np.arange(len(Deals))
+        return chartFigure(height=height, title=title,
+            Tick=Deals['Price'],
+            Profit=eq,
+            Pos=dict(y=Deals['Size'].cumsum(), row=2, connectgaps=True, shape='hv'),
+            Buy=dict(x=pos[buys], y=Deals[buys]['Price']),
+            Sell=dict(x=pos[sells], y=Deals[sells]['Price']),
+            **lines
+        )
+    else:
+        # draw deals chart with DateTime axis
+        return chartFigure(height=height, title=title,
+            Bid=dict(x=Spread['DateTime'], y=Spread['BidPrice']),
+            Ask=dict(x=Spread['DateTime'], y=Spread['AskPrice']),
+            Profit=dict(x=Spread['DateTime'], y=eq),
+            Pos=dict(x=Deals['DateTime'], y=Deals['Size'].cumsum(), row=2, connectgaps=True, shape='hv'),
+            EnterLong=dict(x=Deals[buys]['DateTime'], y=Deals[buys]['Price']),
+            EnterShort=dict(x=Deals[sells]['DateTime'], y=Deals[sells]['Price']),
+            **lines
+        )
