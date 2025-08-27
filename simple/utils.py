@@ -106,8 +106,8 @@ def pmap(func: callable, *args, params: List[tuple] = None, combine: bool = Fals
     return [(*p, *tpl(v)) for p, v in zip(param_list, result)] if combine else result
 
 
-def npMMF(filename: str, dtype: np.dtype = None) -> NDArray:
-    """Returns memory-mapped array of specified filename and dtype"""
+def npMMF(filename: str, dtype: np.dtype = None, mode: str = 'r') -> NDArray:
+    """Returns specified filename as memory-mapped array of specified or stored dtype"""
     if dtype is None:
         name, ext = splitext(filename)
         with open(f'{name}.dtype') as f:
@@ -115,7 +115,7 @@ def npMMF(filename: str, dtype: np.dtype = None) -> NDArray:
         dtype = np.dtype([tuple(row) for row in loads(s)])
 
     rec_count = getsize(filename) // np.dtype(dtype).itemsize
-    X = np.memmap(filename, mode='r+', shape=rec_count, dtype=dtype)
+    X = np.memmap(filename, mode=mode, shape=rec_count, dtype=dtype)
     return X.view(np.recarray)
 
 
