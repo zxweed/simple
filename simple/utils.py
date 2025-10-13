@@ -185,6 +185,13 @@ def getName(var) -> str:
         frame = frame.f_back
 
 
+def getFuncParams() -> dict:
+    """Returns parameters dictionary of the calling function"""
+    args_info = getargvalues(currentframe().f_back)
+    params = {arg: args_info.locals[arg] for arg in args_info.args}
+    return params
+
+
 def addSuffixes(X: NDArray, suffix: str = None) -> list:
     """Returns names list with suffix 'on {variable_name}' for combined datasets"""
     return [f'{name} on {getName(X) if suffix is None else suffix}' for name in X.dtype.names]
