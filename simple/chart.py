@@ -394,10 +394,10 @@ def chartImportance(predictor, top=16):
     return fig
 
 
-def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = []) -> widgets:
+def chartParallel(X: pd.DataFrame, height: int = 400, inverse: list = [], include_index: bool = True) -> go.FigureWidget:
     """Parallel coordinates chart for optimization results"""
 
-    x = X.reset_index()    # include index columns too
+    x = X.reset_index() if include_index else X   # include index columns too if specified
     dimensions = [
         {'label': c,
          'values': x[c],
