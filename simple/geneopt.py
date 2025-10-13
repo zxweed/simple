@@ -2,16 +2,19 @@
 
 import numpy as np
 from inspect import getfullargspec
-from multiprocessing.pool import ThreadPool
 from multiprocessing import Pool, Manager
-from random import randrange, randint, uniform
+from multiprocessing.pool import ThreadPool
+from random import randrange, randint, uniform, choices
+from string import ascii_lowercase
+from os import remove
+
 from contextlib import closing
 from tqdm.auto import tqdm
 from itertools import product, zip_longest
 from functools import partial
-from simple.pretty import tqdmParallel, pmap, common_type
 from joblib import delayed
 from psutil import cpu_percent
+from .utils import tqdmParallel, pmap, common_type
 
 from deap import creator, base, tools
 from deap.algorithms import varAnd
@@ -184,10 +187,17 @@ def _suggest(trial, key, value):
 class TOptuna(Opt):
     """Optuna-based bayesian optimization class"""
 
-    def __init__(self, target, storage_url='sqlite:///optuna.db', study_name=None, what=None, direction='maximize'):
+    def __init__(self, target, storage_url=None, study_name=None, what=None, direction='maximize'):
         super().__init__(target)
         self.log = Manager().list()
         self.what = what
+        if storage_url is None:
+            uniq = ''.join(choices(ascii_lowercase, k=8))
+            self.temp_dbname = f'~optuna_{uniq}.db'
+            storage_url = f'sqlite:///{self.temp_dbname}'
+        else:
+            self.temp_dbname = None
+
         self.study = optuna.create_study(
             study_name=study_name,
             storage=storage_url,
@@ -219,15 +229,23 @@ class TOptuna(Opt):
     def bestValue(self):
         return self.study.best_value
 
-    def run(self, attempts=128, n_jobs=-1, n_trials=1, backend='multiprocessing'):
+    def run(self, attempts=128, n_jobs=-1, n_trials=1, backend='multiprocessing', postfix={}):
         """parallel optuna-based bayesian optimization"""
+        # TODO: postfix don't work correctly
         pmap(
             partial(self.study.optimize, n_trials=n_trials),
             [self.objective] * attempts,
-            postfix={self.what: self.bestValue} if self.what is not None else {'value': self.bestValue},
+            postfix=postfix | {self.what: self.bestValue} if self.what is not None else {'value': self.bestValue},
             n_jobs=n_jobs,
             backend=backend
         )
+        
+        # Clean up temporary database file if used
+        try:
+            remove(self.temp_dbname)
+        except OSError:
+            pass  # Ignore if file can't be removed because it wasn't specified (user wants to use existing database)
+        
         return self.study.best_params
 
 
