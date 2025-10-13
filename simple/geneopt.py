@@ -232,10 +232,11 @@ class TOptuna(Opt):
     def run(self, attempts=128, n_jobs=-1, n_trials=1, backend='multiprocessing', postfix={}):
         """parallel optuna-based bayesian optimization"""
         # TODO: postfix don't work correctly
+        nameValue = self.what if self.what is not None else 'value'
         pmap(
             partial(self.study.optimize, n_trials=n_trials),
             [self.objective] * attempts,
-            postfix=postfix | {self.what: self.bestValue} if self.what is not None else {'value': self.bestValue},
+            postfix=postfix | {nameValue: self.bestValue},
             n_jobs=n_jobs,
             backend=backend
         )
