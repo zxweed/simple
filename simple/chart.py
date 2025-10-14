@@ -21,7 +21,6 @@ from numpy.typing import NDArray
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
 from ipywidgets import widgets, interactive, HBox, VBox
-#from ipyslickgrid import show_grid
 
 from .types import TPairTrade, TBidAskDT, TTrade
 from .utils import iterable
@@ -315,7 +314,10 @@ def interactFigure(model_func: callable, height: int = default_height, rows: int
 def interactTable(model_func: callable, X: pd.DataFrame, height: int = default_height, rows: int = 1,
                   title: str = None, template: str = default_template, **lines) -> widgets:
     """Interactive parameter table browser"""
-
+    
+    # lazy loading is used to avoid import errors
+    from ipyslickgrid import show_grid
+    
     box = interactFigure(model_func, height=height, rows=rows, template=template, title=title, **lines)
 
     def on_changed(event, grid):
