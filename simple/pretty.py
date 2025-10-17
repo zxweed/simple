@@ -143,9 +143,9 @@ def rnd(value, prec=4):
 
 
 def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
-                 z_name: str = '', g_name: str = '', 
+                 z_name: str = '', g_name: str = '',
                  value_max: Optional[float] = None,
-                 fig_width=16, 
+                 fig_width=16,
                  text_color='blue', stroke: bool = False,
                  labels: bool = True) -> plt.figure:
     """
@@ -250,7 +250,7 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
     return fig
 
 
-def plotImportance(model, names=None, top=20, palette='Blues_r', ax=None):
+def plotImportance(model, names=None, top=20, palette='Blues_r', ax=None) -> plt.figure:
     """
     Plot the feature importance chart.
 
@@ -262,7 +262,10 @@ def plotImportance(model, names=None, top=20, palette='Blues_r', ax=None):
         ax: The axis to plot the chart on. If None, a new axis will be created.
     """
     # Check if the model has a 'feature_names_' attribute and names is None
-    names = model.feature_names_ if hasattr(model, 'feature_names_') and names is None else names
+    if names is None and hasattr(model, 'feature_name'):
+        names = model.feature_name()
+    elif names is None and hasattr(model, 'feature_names_'):
+        names = model.feature_names_
 
     # Check if the model has a 'feature_importances_' attribute
     if hasattr(model, 'feature_importances_'):
@@ -277,10 +280,10 @@ def plotImportance(model, names=None, top=20, palette='Blues_r', ax=None):
         f = pd.Series(importances, index=names).sort_values(ascending=False)[:top]
         sns.barplot(y=f.index, hue=f.index, x=f, palette=palette, ax=ax).set(ylabel='Feature importance')
     else:
-         print("Selected model does not support feature_importances")
+        print("Selected model does not support feature_importances")
 
 
-def getROC(model, X_test, y_test):
+def getROC(model, X_test, y_test) -> tuple:
     """Calculate the Receiver Operating Characteristic (ROC) curve for a multi-class classification model.
 
     Parameters:
@@ -305,7 +308,7 @@ def getROC(model, X_test, y_test):
     return fpr, tpr, roc_auc
 
 
-def plotROC(model, X_test, y_test):
+def plotROC(model, X_test, y_test) -> plt.figure:
     """
     Plot the Receiver Operating Characteristic (ROC) curve for a multi-class classification model.
 
@@ -345,3 +348,13 @@ def plotROC(model, X_test, y_test):
 
     plt.close(fig)
     return fig
+
+
+def barplot(R) -> plt.Axes:
+    """Plot a bar plot with a horizontal line at the mean value"""
+    ax = R.plot.bar(figsize=(16,4), width=0.9, legend=False)
+    score = R.mean()
+    ax.axhline(score, color='black', linestyle='--', label=f'{score:.2f}%')
+    ax.legend()
+    ax.bar_label(ax.containers[0], fmt='%.2f', label_type='edge', fontsize=8)
+    return ax
