@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
 from inspect import getfullargspec
 from multiprocessing import Pool, Manager
 from multiprocessing.pool import ThreadPool
@@ -8,20 +7,21 @@ from random import randrange, randint, uniform, choices
 from string import ascii_lowercase
 from os import remove
 
-from contextlib import closing
-from tqdm.auto import tqdm
 from itertools import product, zip_longest
 from functools import partial
+from contextlib import closing
+from tqdm.auto import tqdm
 from joblib import delayed
 from psutil import cpu_percent
-from .utils import tqdmParallel, pmap, common_type
 
+import numpy as np
 from deap import creator, base, tools
 from deap.algorithms import varAnd
 import optuna
 optuna.logging.set_verbosity(optuna.logging.ERROR)
+from .utils import tqdmParallel, pmap, common_type
 
-class Opt:
+class TOpt:
     def __init__(self, target):
         self.target = target.__wrapped__ if hasattr(target, '__wrapped__') else target
         spec = getfullargspec(self.target)
@@ -69,7 +69,7 @@ def inclusive_range(*args):
         i += step
 
 
-class GridOpt(Opt):
+class TGridOpt(TOpt):
     """Full grid optimization engine"""
 
     def fullSearch(self):
@@ -85,7 +85,7 @@ class GridOpt(Opt):
         return max([x[0] for x in self.log])
 
 
-class GeneOpt(Opt):
+class TGeneOpt(TOpt):
     """Genetic optimization engine"""
 
     def genRandom(self, arg):
@@ -93,9 +93,9 @@ class GeneOpt(Opt):
         if arg in self.annotations:
             p = self.defaults[arg]
             if self.annotations[arg] == int:
-                return randrange(*p) if type(p) == tuple else randint(0, p+1)
+                return randrange(*p) if isinstance(p, tuple) else randint(0, p+1)
             elif self.annotations[arg] == float:
-                return uniform(p[0], p[1]) if type(p) == tuple else uniform(0, p)
+                return uniform(p[0], p[1]) if isinstance(p, tuple) else uniform(0, p)
 
         # default arg type = float(0..100)
         return uniform(0, 100)
@@ -107,7 +107,7 @@ class GeneOpt(Opt):
         result_dict = self.target(*individual)
         return result_dict,
 
-    def maximize(self, population_size=128, generations=5, what: str='Profit', callback: callable = None):
+    def run(self, population_size=128, generations=5, what: str = 'Profit', callback: callable = None):
         """
         Maximizes the fitness value of the target function using a genetic algorithm.
 
@@ -132,8 +132,8 @@ class GeneOpt(Opt):
         toolbox.register("select", tools.selTournament, tournsize=5)
         population = toolbox.population(n=population_size)
 
-        with closing(Pool()) as P:
-            toolbox.register("map", P.map)
+        with closing(ThreadPool()) as pool:
+            toolbox.register("map", pool.map)
 
             pbar = tqdm(range(generations))
             for _ in pbar:
@@ -145,7 +145,7 @@ class GeneOpt(Opt):
 
                 for fit, ind in zip(fits, offspring):
                     f = fit[0]   # fitness value is tuple always
-                    if type(f) == dict:
+                    if isinstance(f, dict):
                         fitness_value = f[what] if what in f else 0
                         fitness_tuple = (fitness_value,)
 
@@ -164,7 +164,10 @@ class GeneOpt(Opt):
                     ind.fitness.values = fitness_tuple
 
                 population = toolbox.select(offspring, k=len(population))
-                pbar.set_postfix(dict(fit=f'{fitness_value:,.2f}', cpu=f'{cpu_percent():1.0f}%'))
+                pbar.set_postfix({
+                    "fit": f'{fitness_value:,.2f}', 
+                    "cpu": f'{cpu_percent():1.0f}%'
+                })
 
         del creator.FitnessMax
         del creator.Individual
@@ -175,16 +178,16 @@ class GeneOpt(Opt):
 def _suggest(trial, key, value):
     """create trial.suggest_XXX object for specified value"""
 
-    if type(value) is list:
+    if isinstance(value, list):
         return trial.suggest_categorical(key, value)
-    elif type(value) is tuple and len(value) >= 2:
+    elif isinstance(value, tuple) and len(value) >= 2:
         if isinstance(value[0], int) and isinstance(value[1], int):
             return trial.suggest_int(key, value[0], value[1])
         else:
             return trial.suggest_float(key, value[0], value[1])
 
 
-class TOptuna(Opt):
+class TOptuna(TOpt):
     """Optuna-based bayesian optimization class"""
 
     def __init__(self, target, storage_url=None, study_name=None, what=None, direction='maximize'):
@@ -211,12 +214,12 @@ class TOptuna(Opt):
         value = self.target(**params)
         self.log.append((*params.values(), value))
 
-        if type(value) is dict:
+        if isinstance(value, dict):
             if self.what is None:
                 result = value[list(value.keys())[0]]   # use the first dict value as fitness
             else:
                 result = value[self.what]   # use the 'what' field value
-        elif type(value) is list or type(value) is tuple:
+        elif isinstance(value, (list, tuple)):
             if self.what is None:
                 result = value[0]
             else:
@@ -257,7 +260,7 @@ def optrun(target, what=None, direction='maximize', **kwargs):
 
     # expand dicts from the log to values if necessary
     value = G.log[0][-1]
-    if type(value) is dict:
+    if isinstance(value, dict):
         result_list = [(*p[:-1], *p[-1].values()) for p in G.log]
         columns = G.args + list(value.keys())
     else:

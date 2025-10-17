@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "Cython", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name='simple'
+description='A package that implements some simple quantitative functions'
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "cython",
+    "pandas",
+    "tqdm",
+    "joblib",
+    "psutil",
+    "matplotlib",
+    "plotly",
+    "optuna",
+    "scikit-learn",
+    "scipy",
+    "statsmodels",
+    "seaborn",
+    "plotly-resampler"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov"]
+
+[tool.pylint.messages_control]
+disable = ["C0114", "R0913"]
+
+[tool.flake8]
+ignore = ["E128", "E123", "E501", "W503"]
