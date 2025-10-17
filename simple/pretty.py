@@ -145,12 +145,12 @@ def rnd(value, prec=4):
 def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
                  z_name: str = '', g_name: str = '',
                  value_max: Optional[float] = None,
-                 fig_width=16,
-                 text_color='blue', stroke: bool = False,
-                 labels: bool = True) -> plt.figure:
+                 fig_width: int = 16,
+                 text_color: str = 'blue', stroke: bool = False,
+                 labels: bool = True) -> plt.Figure:
     """
     Create grid figure with heatmap subplots.
-    
+
     Parameters:
         df (NDArray or DataFrame): The input data
         x_name (str): The name of the column to be used as x-axis for each subplot
@@ -162,18 +162,19 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
         fig_width (int, optional): The width of the figure
         text_color (str, optional): The color of the text
         stroke (bool|str, optional): Flag to add a black (or specified color) stroke to the text
-    
+
     Returns:
-        plt.figure: The figure object.
+        plt.Figure: The figure object.
     """
 
     Z = np.unique(df[z_name]) if z_name else None
     G = np.unique(df[g_name]) if g_name else None
-    
+
     # determine number of rows and columns
+    rows, cols = 1, 1
+    one = None
     if not z_name and not g_name:
         # single plot
-        rows, cols = 1, 1
         one = df
         param = [0]
     elif z_name and g_name:
@@ -191,6 +192,8 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
         rows, cols = 1, len(Z)
         one = df[df[z_name] == Z[0]]
         param = Z
+    else:
+        raise ValueError(f"Invalid combination of z_name and g_name: {z_name} and {g_name}")
 
     # determine width and height of figure
     pvt = pd.DataFrame(one).pivot(columns=x_name, index=y_name, values=value_name).values
@@ -229,7 +232,7 @@ def plotHeatmaps(df: NDArray, x_name: str, y_name: str, value_name: str,
             ax.imshow(pvt, cmap='RdYlGn', vmin=-h, vmax=h)
             
             # place text in the center of heatmap
-            y, x = [(s-1)/2 for s in pvt.shape]
+            y, x = [(s - 1) / 2 for s in pvt.shape]
             text += f'\nmax({value_name})={pvt.values.max():,.1f}\nmean({value_name})={pvt.values.mean():,.1f}'
             ax.text(x, y, text, color=text_color, ha='center', va='center', path_effects=path_effects)
 
@@ -328,7 +331,7 @@ def plotROC(model, X_test, y_test) -> plt.figure:
 
     # plot ROC chart
     for i, color in zip(range(n_classes), colors):
-        label = 'ROC curve of class {0} (area = {1:0.2f})'.format(i, roc_auc[i])
+        label = f'ROC curve of class {i} (area = {roc_auc[i]:0.2f})'
         ax[0].plot(fpr[i], tpr[i], color=color, lw=2, alpha=0.5, label=label)
 
     ax[0].plot([0, 1], [0, 1], color='black', lw=1, linestyle='--')
@@ -340,7 +343,7 @@ def plotROC(model, X_test, y_test) -> plt.figure:
     # plot confusion matrix
     y_pred = model.predict(X_test)
     conf_matrix = confusion_matrix(y_test, y_pred)
-    sns.heatmap(conf_matrix, annot=True, cmap='Blues', fmt="g", ax=ax[1], linewidths=3, linecolor='white');
+    sns.heatmap(conf_matrix, annot=True, cmap='Blues', fmt="g", ax=ax[1], linewidths=3, linecolor='white')
 
     ax[1].set_title('Confusion Matrix')
     ax[1].set_xlabel('Predicted Label')
@@ -352,7 +355,7 @@ def plotROC(model, X_test, y_test) -> plt.figure:
 
 def barplot(R) -> plt.Axes:
     """Plot a bar plot with a horizontal line at the mean value"""
-    ax = R.plot.bar(figsize=(16,4), width=0.9, legend=False)
+    ax = R.plot.bar(figsize=(16, 4), width=0.9, legend=False)
     score = R.mean()
     ax.axhline(score, color='black', linestyle='--', label=f'{score:.2f}%')
     ax.legend()

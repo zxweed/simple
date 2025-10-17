@@ -27,7 +27,7 @@ dependencies = [
 dev = ["pytest", "pytest-cov"]
 
 [tool.pylint.messages_control]
-disable = ["C0114", "R0913"]
+disable = ["C0301", "C0114", "R0913", "C0103", "R0903", "R0917", "R0914", "R0912"]
 
 [tool.flake8]
 ignore = ["E128", "E123", "E501", "W503"]
