@@ -189,13 +189,14 @@ def common_type(types: Union[list, set]) -> type:
 
 
 def iterable(obj):
-    if type(obj) == str:
+    """Check if an object is iterable (except string because iterating over characters does not make sense here)"""
+    if isinstance(obj, str):
         return False
 
     try:
         iter(obj)
         return True
-    except:
+    except TypeError:
         return False
 
 
@@ -208,6 +209,7 @@ def getName(var) -> str:
             if value is var and not name.startswith('_'):
                 return name
         frame = frame.f_back
+    return None
 
 
 def getFuncParams() -> dict:
@@ -233,21 +235,24 @@ def flatList(list_of_lists: [list]) -> list:
     return [item for sublist in list_of_lists for item in sublist]
 
 
-def npCombine(list_of_arrays: list, suffixes: list = []):
+def npCombine(list_of_arrays: list, suffixes: list = None):
     """Combines several structure arrays into one"""
+    if suffixes is None:
+        suffixes = []
 
     data = list(zip_longest(list_of_arrays, suffixes))
     dtype = np.dtype(flatList(starmap(dtypeSuffixes, data)))
     R = np.zeros(len(list_of_arrays[0]), dtype=dtype)
-    
+
     for x, suffix in data:
         name = addSuffixes(x, suffix)
         R[name] = x
-        
+
     return R.view(np.recarray)
 
 
 def vx(X: NDArray) -> NDArray:
+    """Converts a structured array into a 2D array of values"""
     x = X.astype([desc for desc in X.dtype.descr if desc[0] != ''])
     dtype = x.dtype.descr[0][1]
     return x.view(dtype).reshape(len(x), len(x.dtype.names))
@@ -285,7 +290,7 @@ def inclusive_range(*args, count: int = 10):
     else:
         raise TypeError(f"Inclusive range was expected at most 3 arguments, but got {nargs}")
     i = start
-    while i < stop + step/2:
+    while i < stop + step / 2:
         yield i
         i += step
 
@@ -298,7 +303,7 @@ def gridrun(func: callable, count: int = 10, **kwargs) -> NDArray:
     defaults = dict(reversed(list(zip_longest(reversed(spec.args), def_list, fillvalue=100))))
 
     # create list with all parameter combinations
-    X = product(*(inclusive_range(*v, count=count) if type(v) is tuple else v for v in defaults.values()))
+    X = product(*(inclusive_range(*v, count=count) if isinstance(v, tuple) else v for v in defaults.values()))
     params = [dict(zip(spec.args, x)) for x in X]
 
     # run parallel grid search
@@ -308,13 +313,13 @@ def gridrun(func: callable, count: int = 10, **kwargs) -> NDArray:
 
     # stack parameters and results
     result_list = [
-        (*param.values(), *(result.values() if type(result) is dict else (result,)))
+        (*param.values(), *(result.values() if isinstance(result, dict) else (result,)))
         for param, result in zip(params, log)
     ]
 
     # create structured array for result
-    columns = spec.args + (list(log[0].keys()) if type(log[0]) is dict else ['value'])
-    dtype = [(col, common_type(set([type(r[i]) for r in result_list]))) for i, col in enumerate(columns)]
+    columns = spec.args + (list(log[0].keys()) if isinstance(log[0], dict) else ['value'])
+    dtype = [(col, common_type({type(r[i]) for r in result_list})) for i, col in enumerate(columns)]
     return np.array(result_list, dtype=dtype).view(np.recarray)
 
 
@@ -322,7 +327,9 @@ def npDateTime(T: np.dtype, new_dtype: object = 'M8[us]') -> np.dtype:
     """Replace DateTime/DT field's dtype with another specified dtype"""
     return np.dtype([(d[0], new_dtype if d[0].lower() in ['datetime', 'dt', 'timestamp', 'ts'] else d[1]) for d in T.descr])
 
+
 def asDateTime(X: NDArray, new_dtype: object = 'M8[us]') -> NDArray:
+    """Convert a DateTime/DT fields in structured array to datetime64 dtype"""
     return X.view(npDateTime(X.dtype, new_dtype)).view(np.recarray)
 
 

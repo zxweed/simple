@@ -353,11 +353,11 @@ def plotROC(model, X_test, y_test) -> plt.figure:
     return fig
 
 
-def barplot(R) -> plt.Axes:
+def barplot(bar_values: pd.Series, legend_size: int = 42) -> plt.Axes:
     """Plot a bar plot with a horizontal line at the mean value"""
-    ax = R.plot.bar(figsize=(16, 4), width=0.9, legend=False)
-    score = R.mean()
-    ax.axhline(score, color='black', linestyle='--', label=f'{score:.2f}%')
-    ax.legend()
-    ax.bar_label(ax.containers[0], fmt='%.2f', label_type='edge', fontsize=8)
+    ax = bar_values.plot.bar(figsize=(16, 4), width=0.9, legend=False)
+    score = bar_values.mean()
+    ax.axhline(score, color="black", linestyle="--", label=f"{score:.2f}%")
+    ax.legend(ncol=3, fontsize=legend_size, loc="lower center", framealpha=0.75)
+    ax.bar_label(ax.containers[0], fmt="%.2f", label_type="edge", fontsize=8)
     return ax

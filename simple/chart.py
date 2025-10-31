@@ -14,22 +14,22 @@ addLines(): Adds lines or markers to the specified FigureWidget, handling differ
 chartTrades(): Returns a dictionary with trade markers (enter and exit) for long and short trades.
 """
 
-import pandas as pd
-import numpy as np
 import re
-from numpy.typing import NDArray
 from inspect import getfullargspec
 from itertools import repeat, zip_longest
+import pandas as pd
+import numpy as np
+from numpy.typing import NDArray
 from ipywidgets import widgets, interactive, HBox, VBox
-
-from .types import TPairTrade, TBidAskDT, TTrade
-from .utils import iterable
-from .backtest import getProfit, npEquity
 
 import plotly.graph_objs as go
 from plotly.graph_objs.scattergl import Marker, Line
 from plotly.subplots import make_subplots
 from plotly_resampler import FigureWidgetResampler
+
+from .types import TPairTrade, TBidAskDT, TTrade
+from .utils import iterable
+from .backtest import getProfit, npEquity
 
 
 # default chart figure parameters
@@ -73,16 +73,14 @@ grid_options = {
 def addLines(fig: go.FigureWidget, **lines):
     """Add line(s) or linestyle(s) to the figure"""
 
-    for line_name in lines:
-        line = lines[line_name]
-
+    for line_name, line in lines.items():
         # check for contiguous state and fix it, if necessary
         if isinstance(line, np.ndarray) and not line.flags['C_CONTIGUOUS']:
             line = np.ascontiguousarray(line)
         if isinstance(line, pd.Series) and not line.values.flags['C_CONTIGUOUS']:
             line = np.ascontiguousarray(line.values)
 
-        if type(line) != dict:
+        if not isinstance(line, dict):
             line = {'hf_y': line}  # if there is only one value specified - interpret as Y series
 
         # if predefined name specified - fill missed attributes from default_styles
