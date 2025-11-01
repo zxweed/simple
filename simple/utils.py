@@ -1,17 +1,20 @@
-import numpy as np
-from numpy.typing import NDArray
+from os import cpu_count
+from os.path import getsize, splitext
+from datetime import datetime, timedelta
 from typing import Callable, Union, Generator, Tuple, List
 from itertools import zip_longest, starmap, product
 from functools import partial
 from inspect import currentframe, getfullargspec, getargvalues
+from multiprocessing.shared_memory import SharedMemory
+from multiprocessing import current_process
+from threading import current_thread
+from json import dumps, loads
+
+import numpy as np
+from numpy.typing import NDArray
 from joblib import Parallel, delayed
 from psutil import cpu_percent
-from os import cpu_count
-from os.path import getsize, splitext
-from datetime import datetime, timedelta
 from tqdm.auto import tqdm
-from multiprocessing.shared_memory import SharedMemory
-from json import dumps, loads
 
 
 class tqdmParallel(Parallel):
@@ -20,11 +23,11 @@ class tqdmParallel(Parallel):
     This class extends joblib.Parallel to provide visual feedback on task completion.
     """
 
-    def __init__(self, progress=True, total=None, postfix=None, n_jobs=cpu_count()//2, **kwargs):
+    def __init__(self, progress=True, total=None, postfix=None, n_jobs=cpu_count() // 2, **kwargs):
         self.progress = progress
         self.total = total
         self.lasttime = datetime.now()
-        self.postfix = postfix if type(postfix) is dict else {'name': postfix} if postfix is not None else None
+        self.postfix = postfix if isinstance(postfix, dict) else {'name': postfix} if postfix is not None else None
         super().__init__(n_jobs=n_jobs, **kwargs)
 
     def __call__(self, *args, **kwargs):
@@ -107,7 +110,7 @@ def pmap(func: callable, *args, params: List[tuple] = None, combine: bool = Fals
     return [(*p, *tpl(v)) for p, v in zip(param_list, result)] if combine else result
 
 
-def prun(indicator: callable, src, period: int, threads: int = cpu_count()//2, progress: bool = True) -> np.array:
+def prun(indicator: callable, src, period: int, threads: int = cpu_count() // 2, progress: bool = True) -> np.array:
     """Parallel calculate any indicator by slicing source series"""
 
     page_size = (len(src) - period + (threads - 1)) // threads
@@ -151,12 +154,12 @@ def toMMF(filename: str, A: NDArray):
     mf.flush()
 
     s_dtype = dumps(A.dtype.descr)
-    name, ext = splitext(filename)
+    name, _ = splitext(filename)
     with open(f'{name}.dtype', 'w') as f:
         f.write(s_dtype)
 
 
-def asShared(X: np.ndarray, shm_name:str=None) -> np.ndarray:
+def asShared(X: np.ndarray, shm_name: str = None) -> np.ndarray:
     """Create shared memory copy of the array to improve further parallel performance"""
     try:
         # Try to attach to existing shared memory
@@ -293,6 +296,17 @@ def inclusive_range(*args, count: int = 10):
     while i < stop + step / 2:
         yield i
         i += step
+
+
+def isMulti() -> bool:
+    """
+    Determines if the current thread is a multiprocessing thread.
+
+    Returns:
+        bool: True if the current thread is a multiprocessing thread, False otherwise.
+    """
+    p = current_process()
+    return current_thread().name != "MainThread" or p.daemon or 'LokyProcess' in p.name or 'ForkPool' in p.name
 
 
 def gridrun(func: callable, count: int = 10, **kwargs) -> NDArray:
