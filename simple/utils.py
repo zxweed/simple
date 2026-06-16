@@ -78,7 +78,7 @@ def plist(*args):
     return list(product(*(p if iterable(p) else [p] for p in args)))
 
 
-def pmap(func: callable, *args, params: List[tuple] = None, combine: bool = False, **kwargs):
+def pmap(func: callable, *args, params: List[tuple] = None, combine: bool = False, **kwargs) -> list:
     """
     Parallel map/starmap implementation via tqdmParallel
 
